@@ -698,7 +698,7 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(czech.idosTerms.absoluteString, "https://idos.cz/smluvni-podminky/")
         XCTAssertEqual(english.idosWebsite.absoluteString, "https://idos.cz/en/")
         XCTAssertEqual(english.idosTerms.absoluteString, "https://idos.cz/en/smluvni-podminky/")
-        XCTAssertEqual(english.projectWebsite.absoluteString, "https://github.com/Glutexo/kastan")
+        XCTAssertEqual(english.projectWebsite.absoluteString, "https://github.com/Glutexo/kastan-macos")
         XCTAssertEqual(
             czech.destinations.map(\.id),
             [.idosWebsite, .idosTerms, .projectWebsite]

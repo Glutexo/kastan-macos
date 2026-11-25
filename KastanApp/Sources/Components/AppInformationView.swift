@@ -16,7 +16,7 @@ struct AppInformationLinks: Equatable {
                 ? "https://idos.cz/smluvni-podminky/"
                 : "https://idos.cz/en/smluvni-podminky/"
         )!
-        projectWebsite = URL(string: "https://github.com/Glutexo/kastan")!
+        projectWebsite = URL(string: "https://github.com/Glutexo/kastan-macos")!
     }
 
     static var localized: Self {

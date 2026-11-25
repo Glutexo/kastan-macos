@@ -1,6 +1,6 @@
 # Pravidla pro agenty
 
-Tento soubor obsahuje projektova pravidla pro agenty pracujici v repozitari `kastan`.
+Tento soubor obsahuje projektova pravidla pro agenty pracujici v repozitari `kastan-macos`.
 Pravidla budeme prubezne rozsirovat.
 
 ## Zakladni chovani
@@ -29,7 +29,7 @@ Pravidla budeme prubezne rozsirovat.
 - Po kazdem uspesnem sestaveni macOS aplikace, vcetne sestaveni v ramci testu, spust `make install-app`, aby byla
   ve Spotlightu nainstalovana aktualni verze. Pokud uz sestaveni probehlo prikazem `make install-app`, instalaci
   znovu neopakuj.
-- Verejna rozhrani projektu zatim pojmenovavej anglicky, vcetne CLI prikazu, voleb, knihovniho API a dokumentovanych prikladu.
+- Verejna rozhrani projektu a dokumentovane priklady pojmenovavej anglicky.
 - Pri anglickem nazvoslovi pouzivej terminy z anglicke verze IDOSu, pokud pro danou vec existuji.
 - Veskery napsany kod dokumentuj z pohledu produktu; dokumentace musi byt soudrzna, uplna a v souladu s implementovanymi funkcemi a vlastnostmi.
 - Pri zmene chovani aktualizuj souvisejici dokumentaci a zaroven over, ze kod odpovida dokumentovanym funkcim a vlastnostem.
@@ -47,11 +47,3 @@ Pravidla budeme prubezne rozsirovat.
   podporovane rozhrani, hlavni pozadavky nebo nejkratsi cesta ke spusteni.
 - Nove verejne rozhrani dostane vlastniho pruvodce v `docs/` a odkaz v `docs/README.md`. Podrobnosti mezi README
   a pruvodci zbytecne neduplikuj.
-
-## Styl CLI
-
-- Vystup na prikazove radce ma co nejverneji zachovavat vyznamove informace z IDOSu.
-- Pokud HTML vysledek IDOSu obsahuje barvu pro linku nebo jiny prvek, CLI ma pouzit odpovidajici ANSI barvu.
-- Barevne formatovani nesmi nahrazovat textovy obsah; vystup musi zustat srozumitelny i bez barev.
-- Pro symboly ve vystupu preferuj Unicode znaky pred ASCII nahradami, napr. `→` misto `->`.
-- Ve vystupu CLI pouzivej emotikony jako rychle vizualni znacky stavu nebo typu informace, ale nesmi nahrazovat srozumitelny text.

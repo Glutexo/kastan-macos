@@ -1,6 +1,5 @@
 .DS_Store
 /.build
-/MCPServer/.build
 /dist
 /Packages
 xcuserdata/

@@ -31,16 +31,8 @@ jobs:
           swift --version
           xcodebuild -version
 
-      - name: Test Swift package
-        run: swift test
-
-      - name: Test MCP server
-        run: swift test --package-path MCPServer
-
       - name: Test macOS app
-        run: |
-          xcodebuild test \
-            -project KastanApp/KastanApp.xcodeproj \
-            -scheme KastanApp \
-            -destination 'platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO
+        run: make test-app
+
+      - name: Test repository tooling
+        run: make test-tooling

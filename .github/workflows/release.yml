@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+
+    steps:
+      - name: Check CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          passed="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml \
+            --commit "$GITHUB_SHA" --branch main --status success --json conclusion --jq 'length')"
+          test "$passed" -gt 0
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build download archives
+        run: |
+          app_version="$(sed -n 's/^[[:space:]]*MARKETING_VERSION = \([^;]*\);/\1/p' KastanApp/KastanApp.xcodeproj/project.pbxproj | head -n 1)"
+          test "$GITHUB_REF_NAME" = "v$app_version"
+          make dist
+
+      - name: Publish download archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes dist/*.dmg dist/*.zip

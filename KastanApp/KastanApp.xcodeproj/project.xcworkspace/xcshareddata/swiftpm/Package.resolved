@@ -1,0 +1,15 @@
+{
+  "originHash" : "ac30a22731e828101991209231192a376d0e0482cab5a965e969abfba6cb813b",
+  "pins" : [
+    {
+      "identity" : "kastan",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Glutexo/kastan.git",
+      "state" : {
+        "revision" : "b00cec9c722017662aa16340e2fa91dc1876e5a5",
+        "version" : "0.10.1"
+      }
+    }
+  ],
+  "version" : 3
+}

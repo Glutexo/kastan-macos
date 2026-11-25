@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-@testable import Kastan
+import Kastan
 @testable import KastanApp
 import SwiftUI
 import XCTest
@@ -10641,7 +10641,7 @@ final class KastanAppTests: XCTestCase {
         XCTAssertNil(independentWorkspace.connectionsModel.errorMessage)
     }
 
-    func testWholeWeekMinuteUsesTheNearestConcreteOccurrence() async throws {
+    func testWholeWeekMinuteUsesTheProvidersConcreteOccurrence() async throws {
         let client = MockIDOSClient()
         let model = StationTimetablesViewModel(client: client)
         model.date = try XCTUnwrap(Calendar.current.date(from: DateComponents(
@@ -10666,7 +10666,7 @@ final class KastanAppTests: XCTestCase {
                     destination: "Sídliště Libuš"
                 ),
             ],
-        ])
+        ], wholeWeekDepartureDate: TransitDate(year: 2026, month: 9, day: 4))
 
         await model.search()
         let result = try XCTUnwrap(model.result)
@@ -11733,6 +11733,7 @@ private actor MockIDOSClient: IDOSClienting {
     private var connectionPagingSessionExpired = false
     private var configuredSuggestions: [IDOSSuggestion]?
     private var departureResponsesByDate: [String: [IDOSDeparture]]?
+    private var wholeWeekDepartureDate: TransitDate?
     private var connectionCalendarFailureDetail: String?
     private var serviceDetailFailureDetail: String?
 
@@ -11740,8 +11741,12 @@ private actor MockIDOSClient: IDOSClienting {
         configuredSuggestions = suggestions
     }
 
-    func configureDepartureResponses(_ responses: [String: [IDOSDeparture]]) {
+    func configureDepartureResponses(
+        _ responses: [String: [IDOSDeparture]],
+        wholeWeekDepartureDate: TransitDate? = nil
+    ) {
         departureResponsesByDate = responses
+        self.wholeWeekDepartureDate = wholeWeekDepartureDate
     }
 
     func configureConnectionPages(
@@ -11863,45 +11868,32 @@ private actor MockIDOSClient: IDOSClienting {
         request: TransitStationTimetableDepartureResolutionRequest,
         language: TransitLanguage
     ) async throws -> TransitStationTimetableDepartureResolution? {
-        guard let reference = IDOSStationTimetableDepartureReference(request: request) else {
+        // The fixture resolves the first displayed minute of Bus 154 through the provider contract.
+        guard request.scheduleIndex == 0, request.hourIndex == 0, request.departureIndex == 0,
+              let selectedStop = request.stationTimetable.selectedStop
+        else {
             return nil
         }
-        for candidateDate in IDOSStationTimetableDepartureResolver.candidateServiceDates(
-            for: reference.scheduleLabel,
-            searchDate: request.serviceDate,
-            wholeWeek: request.wholeWeek
-        ) {
-            guard let serviceDate = IDOSStationTimetableDepartureResolver.addingDays(
-                reference.dayOffset,
-                to: candidateDate
-            ), let selectedStop = request.stationTimetable.selectedStop
-            else {
-                continue
-            }
-            let departureRequest = TransitDeparturesRequest(
-                timetable: request.stationTimetable.timetable,
-                station: selectedStop.name,
-                serviceDate: serviceDate,
-                serviceTime: reference.serviceTime,
-                isArrival: false
-            )
-            let page = try await findDeparturesPage(request: departureRequest, language: language)
-            guard let departure = IDOSStationTimetableDepartureResolver.matchingDeparture(
-                in: page.departures,
-                reference: reference,
-                timetable: request.stationTimetable
-            ) else {
-                continue
-            }
-            return TransitStationTimetableDepartureResolution(
-                departure: departure,
-                request: departureRequest,
-                page: page,
-                serviceDate: serviceDate,
-                serviceTime: reference.serviceTime
-            )
+        let serviceDate = request.wholeWeek ? wholeWeekDepartureDate ?? request.serviceDate : request.serviceDate
+        let serviceTime = TransitTime(hour: 5, minute: 13)
+        let departureRequest = TransitDeparturesRequest(
+            timetable: request.stationTimetable.timetable,
+            station: selectedStop.name,
+            serviceDate: serviceDate,
+            serviceTime: serviceTime,
+            isArrival: false
+        )
+        let page = try await findDeparturesPage(request: departureRequest, language: language)
+        guard let departure = page.departures.first else {
+            return nil
         }
-        return nil
+        return TransitStationTimetableDepartureResolution(
+            departure: departure,
+            request: departureRequest,
+            page: page,
+            serviceDate: serviceDate,
+            serviceTime: serviceTime
+        )
     }
 
     func timetableValidity(

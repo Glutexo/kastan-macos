@@ -1,4 +1,4 @@
-# Common development commands for every Kaštan interface.
+# Development commands for Kaštan for macOS.
 
 SWIFT ?= swift
 XCODEBUILD ?= xcodebuild
@@ -8,15 +8,10 @@ DITTO ?= ditto
 LIPO ?= lipo
 CODESIGN ?= codesign
 UNZIP ?= unzip
-DOCKER ?= docker
-CURL ?= curl
 LSREGISTER ?= /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 KILLALL ?= killall
 MDFIND ?= mdfind
 OSASCRIPT ?= osascript
-
-CLI_IMAGE ?= kastan-cli:local
-MCP_IMAGE ?= kastan-mcp:local
 
 APP_PROJECT := KastanApp/KastanApp.xcodeproj
 APP_SCHEME := KastanApp
@@ -34,8 +29,6 @@ APP_INSTALL_BUILD_DIR := .build/install-app.noindex
 APP_INSTALL_SOURCE := $(APP_INSTALL_BUILD_DIR)/Build/Products/Debug/$(APP_BUNDLE_FILENAME).app
 APP_INSTALL_PATH := $(APP_INSTALL_DIR)/$(APP_BUNDLE_FILENAME).app
 APP_LEGACY_INSTALL_PATH := $(APP_INSTALL_DIR)/$(APP_BUNDLE_NAME).app
-CONTAINER_VERSION ?= $(APP_VERSION)
-CONTAINER_REVISION ?= $(shell $(GIT) rev-parse --verify HEAD 2>/dev/null || printf '%s' unknown)
 
 DIST_DIR ?= dist
 DIST_BUILD_DIR := .build/distribution.noindex
@@ -46,36 +39,26 @@ SOURCE_ZIP_PATH := $(DIST_DIR)/kastan-$(APP_VERSION)-source.zip
 
 .DEFAULT_GOAL := dist
 
-.PHONY: help build install-app test test-library test-live-idos test-mcp test-app test-tooling container-images test-container-images dist dmg source-zip check-dist
+.PHONY: help build install-app test test-app test-tooling dist dmg source-zip check-dist
 
-help: ## Show the available development commands.
+help:
 	@printf '%s\n' \
-		'Kaštan development commands:' \
-		'' \
-		'  make                       Create the macOS DMG and source ZIP.' \
-		'  make help                  Show the available development commands.' \
-		'  make build                 Build the Swift package, MCP server, and macOS app.' \
-		'  make install-app           Build and install the one Spotlight-visible macOS app.' \
-		'  make test                  Run every deterministic test suite.' \
-		'  make test-library          Test the shared Swift package and CLI.' \
-		'  make test-live-idos        Smoke-test the shared library against the live IDOS service.' \
-		'  make test-mcp              Test the MCP server.' \
-		'  make test-app              Test the macOS app.' \
-		'  make test-tooling          Test repository development tooling.' \
-		'  make container-images      Build the CLI and MCP container images.' \
-		'  make test-container-images Build and smoke-test both container images.' \
-		'  make dist                  Create the macOS DMG and source ZIP.' \
-		'  make dmg                   Create a universal macOS DMG.' \
-		'  make source-zip            Archive the buildable sources from Git HEAD.'
+		'  make               Create the macOS DMG and source ZIP.' \
+		'  make build         Build the macOS app.' \
+		'  make install-app   Build and install the Spotlight-visible app.' \
+		'  make test          Run app and tooling tests.' \
+		'  make test-app      Run the app tests.' \
+		'  make test-tooling  Run the tooling tests.' \
+		'  make dmg           Create a universal macOS DMG.' \
+		'  make source-zip    Archive the buildable sources from Git HEAD.'
 
-build: ## Build every Kaštan interface.
-	$(SWIFT) build
-	$(SWIFT) build --package-path MCPServer
+build: ## Build the macOS app.
 	LSREGISTER="$(LSREGISTER)" sh Scripts/run-xcodebuild-without-spotlight.sh \
 		"$(abspath $(APP_BUILD_PRODUCT))" "$(XCODEBUILD)" build \
 		-project $(APP_PROJECT) \
 		-scheme $(APP_SCHEME) \
 		-destination '$(APP_DESTINATION)' \
+		-onlyUsePackageVersionsFromResolvedFile \
 		-derivedDataPath "$(APP_BUILD_DIR)" \
 		CODE_SIGNING_ALLOWED=NO
 
@@ -86,6 +69,7 @@ install-app: ## Build, install, and de-duplicate the macOS app for Spotlight.
 		-scheme $(APP_SCHEME) \
 		-configuration Debug \
 		-destination '$(APP_DESTINATION)' \
+		-onlyUsePackageVersionsFromResolvedFile \
 		-derivedDataPath "$(APP_INSTALL_BUILD_DIR)" \
 		CODE_SIGN_IDENTITY=- \
 		CODE_SIGN_STYLE=Manual \
@@ -103,16 +87,7 @@ install-app: ## Build, install, and de-duplicate the macOS app for Spotlight.
 	@$(KILLALL) Spotlight >/dev/null 2>&1 || true
 	@printf 'Installed %s\n' "$(APP_INSTALL_PATH)"
 
-test: test-library test-mcp test-app test-tooling ## Run every deterministic test suite.
-
-test-library: ## Test the shared Swift package and CLI.
-	$(SWIFT) test
-
-test-live-idos: ## Smoke-test the shared library against the live IDOS service.
-	KASTAN_RUN_LIVE_IDOS_TESTS=1 $(SWIFT) test --filter IDOSLiveTests
-
-test-mcp: ## Test the MCP server.
-	$(SWIFT) test --package-path MCPServer
+test: test-app test-tooling ## Run app and tooling tests.
 
 test-app: ## Test the macOS app.
 	LSREGISTER="$(LSREGISTER)" sh Scripts/run-xcodebuild-without-spotlight.sh \
@@ -120,93 +95,17 @@ test-app: ## Test the macOS app.
 		-project $(APP_PROJECT) \
 		-scheme $(APP_SCHEME) \
 		-destination '$(APP_DESTINATION)' \
+		-onlyUsePackageVersionsFromResolvedFile \
 		-derivedDataPath "$(APP_BUILD_DIR)" \
 		CODE_SIGNING_ALLOWED=NO
 
 test-tooling: ## Test repository development tooling.
 	sh Scripts/Tests/macos-app-name-tests.sh
 	sh Scripts/Tests/macos-app-build-path-tests.sh
-	swift Scripts/Tests/macos-app-icon-tests.swift
+	$(SWIFT) Scripts/Tests/macos-app-icon-tests.swift
 	sh Scripts/Tests/install-app-for-spotlight-tests.sh
 	sh Scripts/Tests/keep-current-app-registered-tests.sh
 	sh Scripts/Tests/run-xcodebuild-without-spotlight-tests.sh
-
-container-images: ## Build the CLI and MCP Linux container images.
-	$(DOCKER) build \
-		--build-arg KASTAN_VERSION="$(CONTAINER_VERSION)" \
-		--build-arg KASTAN_REVISION="$(CONTAINER_REVISION)" \
-		--target cli \
-		--tag "$(CLI_IMAGE)" \
-		.
-	$(DOCKER) build \
-		--build-arg KASTAN_VERSION="$(CONTAINER_VERSION)" \
-		--build-arg KASTAN_REVISION="$(CONTAINER_REVISION)" \
-		--target mcp \
-		--tag "$(MCP_IMAGE)" \
-		.
-
-test-container-images: container-images ## Smoke-test the container entry points and CLI resources.
-	@for image in "$(CLI_IMAGE)" "$(MCP_IMAGE)"; do \
-		test "$$($(DOCKER) image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$$image")" = "$(CONTAINER_VERSION)"; \
-		test "$$($(DOCKER) image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$$image")" = "$(CONTAINER_REVISION)"; \
-		test "$$($(DOCKER) image inspect --format '{{ .Config.User }}' "$$image")" = '65532:65532'; \
-	done
-	@test "$$($(DOCKER) run --rm "$(CLI_IMAGE)" --version)" = "$(CONTAINER_VERSION)"
-	$(DOCKER) run --rm "$(CLI_IMAGE)" --language cs --help | grep -F '🌰 Použití:'
-	@response="$$( { printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"container-smoke-test","version":"1.0"}}}'; sleep 1; } | $(DOCKER) run --rm --interactive "$(MCP_IMAGE)")"; \
-		printf '%s\n' "$$response" | grep -F 'kastan-mcp'
-	@token='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; \
-		container_id="$$($(DOCKER) run --rm --detach \
-			--publish 127.0.0.1::8080 \
-			--env KASTAN_MCP_BEARER_TOKEN="$$token" \
-			"$(MCP_IMAGE)" \
-			--transport http --host 0.0.0.0)"; \
-		trap '$(DOCKER) rm --force "$$container_id" >/dev/null 2>&1 || true' EXIT HUP INT TERM; \
-		port="$$($(DOCKER) port "$$container_id" 8080/tcp | sed -n 's/.*://p' | head -n 1)"; \
-		attempt=0; \
-		until $(CURL) --fail --silent "http://127.0.0.1:$$port/health" >/dev/null; do \
-			attempt=$$((attempt + 1)); \
-			if test "$$attempt" -ge 30; then $(DOCKER) logs "$$container_id"; exit 1; fi; \
-			sleep 0.2; \
-		done; \
-		test "$$($(CURL) --silent --output /dev/null --write-out '%{http_code}' \
-			--header 'Content-Type: application/json' \
-			--header 'Accept: application/json, text/event-stream' \
-			--data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"container-http-smoke-test","version":"1.0"}}}' \
-			"http://127.0.0.1:$$port/mcp")" = 401; \
-		response="$$($(CURL) --fail --silent --show-error \
-			--header "Authorization: Bearer $$token" \
-			--header 'Content-Type: application/json' \
-			--header 'Accept: application/json, text/event-stream' \
-			--data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"container-http-smoke-test","version":"1.0"}}}' \
-			"http://127.0.0.1:$$port/mcp")"; \
-		printf '%s\n' "$$response" | grep -F 'kastan-mcp'
-	@container_id="$$($(DOCKER) run --rm --detach \
-			--publish 127.0.0.1::8080 \
-			--env KASTAN_MCP_AUTH_MODE=oauth \
-			--env KASTAN_MCP_OAUTH_ISSUER=https://kastan-test.authkit.app \
-			--env KASTAN_MCP_OAUTH_RESOURCE=https://mcp.example.com/mcp \
-			--env KASTAN_MCP_OAUTH_REQUIRED_SCOPES=openid \
-			"$(MCP_IMAGE)" \
-			--transport http --host 0.0.0.0)"; \
-		trap '$(DOCKER) rm --force "$$container_id" >/dev/null 2>&1 || true' EXIT HUP INT TERM; \
-		port="$$($(DOCKER) port "$$container_id" 8080/tcp | sed -n 's/.*://p' | head -n 1)"; \
-		attempt=0; \
-		until $(CURL) --fail --silent "http://127.0.0.1:$$port/health" >/dev/null; do \
-			attempt=$$((attempt + 1)); \
-			if test "$$attempt" -ge 30; then $(DOCKER) logs "$$container_id"; exit 1; fi; \
-			sleep 0.2; \
-		done; \
-		metadata="$$($(CURL) --fail --silent --show-error \
-			"http://127.0.0.1:$$port/.well-known/oauth-protected-resource")"; \
-		printf '%s\n' "$$metadata" | grep -F '"resource":"https:\/\/mcp.example.com\/mcp"'; \
-		printf '%s\n' "$$metadata" | grep -F '"authorization_servers":["https:\/\/kastan-test.authkit.app"]'; \
-		headers="$$($(CURL) --silent --dump-header - --output /dev/null \
-			--header 'Content-Type: application/json' \
-			--header 'Accept: application/json, text/event-stream' \
-			--data '{}' \
-			"http://127.0.0.1:$$port/mcp")"; \
-		printf '%s\n' "$$headers" | grep -F 'resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"'
 
 dist: check-dist ## Create every downloadable archive from a clean Git HEAD.
 	$(MAKE) dmg
@@ -226,6 +125,7 @@ dmg: ## Create an ad-hoc-signed universal macOS DMG.
 		-scheme $(APP_SCHEME) \
 		-configuration Release \
 		-destination 'generic/platform=macOS' \
+		-onlyUsePackageVersionsFromResolvedFile \
 		-derivedDataPath "$(DIST_BUILD_DIR)" \
 		ARCHS='arm64 x86_64' \
 		ONLY_ACTIVE_ARCH=NO \

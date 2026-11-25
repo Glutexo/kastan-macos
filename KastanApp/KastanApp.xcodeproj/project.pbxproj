@@ -481,7 +481,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Kaštan uses your location only when you choose My location for a journey endpoint.";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.10.1;
 				PRODUCT_BUNDLE_IDENTIFIER = cz.glutexo.kastan;
 				PRODUCT_MODULE_NAME = KastanApp;
 				PRODUCT_NAME = Kastan;
@@ -506,7 +506,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Kaštan uses your location only when you choose My location for a journey endpoint.";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.10.1;
 				PRODUCT_BUNDLE_IDENTIFIER = cz.glutexo.kastan;
 				PRODUCT_MODULE_NAME = KastanApp;
 				PRODUCT_NAME = Kastan;
@@ -572,12 +572,16 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
+/* Begin XCRemoteSwiftPackageReference section */
 		A00000000000000000000600 /* kastan */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ..;
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Glutexo/kastan.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.10.1;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		A00000000000000000000601 /* Kastan */ = {

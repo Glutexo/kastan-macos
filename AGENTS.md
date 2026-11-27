@@ -19,6 +19,8 @@ Pravidla budeme prubezne rozsirovat.
 - Tag vydani vytvor az po uspesnem dokonceni CI pro presny commit, ktery ma tag oznacovat.
 - Po kazde zmene zkontroluj, zda reprezentativni snimek aplikace v README zustava aktualni. Pokud ho zmena zneaktualni, zaloz pred odevzdanim GitHub issue pro jeho obnoveni.
 - Reprezentativni snimek aplikace v README nesmi nikdy obsahovat spoje dopravce RegioJet.
+- Na reprezentativnim snimku v README vzdy ponech cely stin okna macOS a pruhledne pozadi kolem nej. Pri orezu
+  over, ze stin zustava viditelny ze vsech stran.
 - Pri pristi aktualizaci reprezentativniho snimku aplikace v README pouzij uzsi kompozici nez u snimku porizeneho
   1. zari 2026; tento stavajici snimek zatim ponech.
 - Pred odevzdanim zkontroluj `git status`.

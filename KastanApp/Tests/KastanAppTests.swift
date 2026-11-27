@@ -5013,6 +5013,29 @@ final class KastanAppTests: XCTestCase {
         )
     }
 
+    func testConnectionCheckboxesFollowOptionAndWhetherAnyConnectionIsSelected() async throws {
+        let model = ConnectionsViewModel(client: MockIDOSClient())
+        model.from = "Praha"
+        model.to = "Brno"
+        await model.search()
+        let id = try XCTUnwrap(model.connections.first?.appIdentity)
+
+        func showsCheckboxes(optionIsPressed: Bool) -> Bool {
+            ConnectionResultsPresentation.showsSelectionCheckboxes(
+                optionIsPressed: optionIsPressed,
+                hasSelection: !model.selectedConnectionIDs.isEmpty
+            )
+        }
+
+        XCTAssertFalse(showsCheckboxes(optionIsPressed: false))
+        XCTAssertTrue(showsCheckboxes(optionIsPressed: true))
+        model.setConnectionSelected(true, id: id)
+        XCTAssertTrue(showsCheckboxes(optionIsPressed: false))
+        model.setConnectionSelected(false, id: id)
+        XCTAssertTrue(showsCheckboxes(optionIsPressed: true))
+        XCTAssertFalse(showsCheckboxes(optionIsPressed: false))
+    }
+
     func testFastestConnectionBadgesMirrorCLIDurationComparison() {
         let connections = [
             connection(id: "slower", duration: "3 h 40 min"),

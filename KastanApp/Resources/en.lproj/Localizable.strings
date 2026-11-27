@@ -234,6 +234,8 @@
 "Send by Email" = "Send by Email";
 "Send Connection by Email" = "Send Connection by Email";
 "Share Link" = "Share Link";
+"Deselect Connection" = "Deselect Connection";
+"Select Connection" = "Select Connection";
 "Select connection %lld" = "Select connection %lld";
 "Selected Connections" = "Selected Connections";
 "Share Selection" = "Share Selection";

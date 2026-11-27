@@ -21,6 +21,11 @@ enum ConnectionResultsPresentation: Equatable {
         return .empty
     }
 
+    /// Lets Option reveal the checkboxes before the first selection keeps them visible.
+    static func showsSelectionCheckboxes(optionIsPressed: Bool, hasSelection: Bool) -> Bool {
+        optionIsPressed || hasSelection
+    }
+
     /// Mirrors the CLI by marking every displayed connection tied for the shortest parsed duration.
     static func shortestConnectionIDs(in connections: [TransitConnection]) -> Set<String> {
         let comparableConnections = connections.compactMap { connection -> (id: String, minutes: Int)? in
@@ -1188,6 +1193,10 @@ struct ConnectionsView: View {
             let shortestConnectionIDs = ConnectionResultsPresentation.shortestConnectionIDs(
                 in: model.connections
             )
+            let showsSelectionCheckbox = ConnectionResultsPresentation.showsSelectionCheckboxes(
+                optionIsPressed: optionIsPressed,
+                hasSelection: !model.selectedConnectionIDs.isEmpty
+            )
             LazyVStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(model.connections.enumerated()), id: \.element.appIdentity) { index, connection in
                     let resultTimetable = connection.appTimetable(in: client.timetables)
@@ -1247,6 +1256,7 @@ struct ConnectionsView: View {
                         ),
                         openStationTimetable: openStationTimetable,
                         openDepartures: openDepartures,
+                        showsSelectionCheckbox: showsSelectionCheckbox,
                         isSelected: Binding(
                             get: { model.selectedConnectionIDs.contains(connection.appIdentity) },
                             set: { model.setConnectionSelected($0, id: connection.appIdentity) }
@@ -1808,6 +1818,7 @@ struct ConnectionCard: View {
     let fallbackServiceDate: TransitDate?
     let openStationTimetable: ((StationTimetableSelection, StationTimetableOpenDestination) -> Void)?
     let openDepartures: ((DepartureSearchSelection, DepartureSearchOpenDestination) -> Void)?
+    var showsSelectionCheckbox = false
     var isSelected: Binding<Bool>? = nil
 
     @ViewBuilder
@@ -1827,7 +1838,7 @@ struct ConnectionCard: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    if let number, let isSelected {
+                    if showsSelectionCheckbox, let number, let isSelected {
                         Toggle(isOn: isSelected) {
                             Text(AppLocalization.string("Select connection %lld", number))
                         }
@@ -1977,7 +1988,21 @@ struct ConnectionCard: View {
         CLIPlainTextPresentation().connection(connection, timetable: timetable)
     }
 
+    @ViewBuilder
     private func actionMenuContent(openInNewWindow: @escaping () -> Void) -> some View {
+        if let isSelected {
+            Button {
+                isSelected.wrappedValue.toggle()
+            } label: {
+                if isSelected.wrappedValue {
+                    Label("Deselect Connection", systemImage: "minus.square")
+                } else {
+                    Label("Select Connection", systemImage: "checkmark.square")
+                }
+            }
+            Divider()
+        }
+
         ConnectionContextMenuContent(
             availability: .connection(client.descriptor),
             permanentLink: connectionActionURL,

@@ -234,6 +234,8 @@
 "Send by Email" = "Poslat na e-mail";
 "Send Connection by Email" = "Poslat spojení na e-mail";
 "Share Link" = "Sdílet odkaz";
+"Deselect Connection" = "Odebrat z výběru";
+"Select Connection" = "Vybrat spojení";
 "Select connection %lld" = "Vybrat spojení %lld";
 "Selected Connections" = "Vybraná spojení";
 "Share Selection" = "Sdílet výběr";

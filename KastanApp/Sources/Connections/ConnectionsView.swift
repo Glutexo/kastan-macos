@@ -1873,6 +1873,15 @@ struct ConnectionCard: View {
                         }
                         Spacer(minLength: 0)
                     }
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        openConnection?()
+                    }
+                    .overlay {
+                        if let openConnection {
+                            ModifierClickOverlay(requiredModifierFlags: .command) { _ in openConnection() }
+                        }
+                    }
                     if showsSelectionCheckbox, let number, let isSelected {
                         Toggle(isOn: isSelected) {
                             Text(AppLocalization.string("Select connection %lld", number))
@@ -1917,6 +1926,15 @@ struct ConnectionCard: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) {
+                    openConnection?()
+                }
+                .overlay {
+                    if let openConnection {
+                        ModifierClickOverlay(requiredModifierFlags: .command) { _ in openConnection() }
+                    }
+                }
 
                 if !connection.legs.isEmpty {
                     Divider()

@@ -352,6 +352,7 @@ one ordinary provider is registered.
   Cards always retain line colors and transport symbols. Right-clicking anywhere on a connection card
   opens the same complete action menu as its ellipsis button. The first group combines Select Connection or
   Deselect Connection with Open in new window, which opens the complete connection in an independent window.
+  Double-clicking or Command-clicking the time or route summary opens the same connection window.
   Right-clicking a particular service row stays scoped to that service and
   offers its own preview followed by calendar, PDF, and sharing actions rather
   than falling through to the enclosing connection. All available detail actions are selectable on the first menu opening;

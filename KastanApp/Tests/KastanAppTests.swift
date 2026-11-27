@@ -6461,66 +6461,35 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(ResultPreviewLayout.serviceSize, CGSize(width: 400, height: 560))
     }
 
-    func testConnectionSummaryLeavesOpeningItsWindowToTheMenu() throws {
-        var openCount = 0
-        let card = ConnectionCard(
-            number: 1,
-            connection: connection(id: "connection-double-click"),
-            timetable: IDOSTimetable(slug: "vlaky", displayName: "Trains"),
-            client: MockIDOSClient(),
-            isShortest: false,
-            showsConnectionBadges: true,
-            showsItemDetails: false,
-            showsServiceInformationText: false,
-            showsStopNoteText: false,
-            isPerformingAction: false,
-            timeFrameCoordinateSpace: nil,
-            openConnection: { openCount += 1 },
-            openService: { _ in },
-            performEmailAction: { _ in },
-            performCalendarAction: { _ in },
-            performPDFAction: { _ in },
-            fallbackServiceDate: nil,
-            openStationTimetable: nil,
-            openDepartures: nil
-        )
-        let hostingView = NSHostingView(
-            rootView: card.frame(width: 700, height: 140, alignment: .topLeading)
-        )
-        hostingView.frame = NSRect(x: 0, y: 0, width: 700, height: 140)
-        let window = NSWindow(
-            contentRect: hostingView.frame,
-            styleMask: .borderless,
-            backing: .buffered,
-            defer: false
-        )
-        window.contentView = hostingView
-        window.makeKeyAndOrderFront(nil)
-        hostingView.layoutSubtreeIfNeeded()
-        defer { window.orderOut(nil) }
-
-        let modifierClickViews = hostingView.allDescendantViews.compactMap { $0 as? ModifierClickCaptureView }
-        XCTAssertFalse(modifierClickViews.contains { $0.requiredModifierFlags.contains(.command) })
-
-        for location in [NSPoint(x: 300, y: 120), NSPoint(x: 300, y: 90)] {
-            for clickCount in 1...2 {
-                for eventType in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-                    let event = try XCTUnwrap(NSEvent.mouseEvent(
-                        with: eventType,
-                        location: location,
-                        modifierFlags: [],
-                        timestamp: ProcessInfo.processInfo.systemUptime,
-                        windowNumber: window.windowNumber,
-                        context: nil,
-                        eventNumber: 0,
-                        clickCount: clickCount,
-                        pressure: eventType == .leftMouseDown ? 1 : 0
-                    ))
-                    window.sendEvent(event)
-                }
-            }
+    func testDoubleClickingAnywhereInConnectionSummaryOpensItsWindow() throws {
+        for showsConnectionBadges in [false, true] {
+            XCTAssertEqual(
+                try connectionCardOpenCount(
+                    after: .doubleClick(at: NSPoint(x: 300, y: 120)),
+                    showsConnectionBadges: showsConnectionBadges
+                ),
+                1
+            )
+            XCTAssertEqual(
+                try connectionCardOpenCount(
+                    after: .doubleClick(at: NSPoint(x: 300, y: 90)),
+                    showsConnectionBadges: showsConnectionBadges
+                ),
+                1
+            )
         }
-        XCTAssertEqual(openCount, 0)
+    }
+
+    func testCommandClickingAnywhereInConnectionSummaryOpensItsWindow() throws {
+        for showsConnectionBadges in [false, true] {
+            XCTAssertEqual(
+                try connectionCardOpenCount(
+                    after: .commandClickingEachSummaryRow,
+                    showsConnectionBadges: showsConnectionBadges
+                ),
+                2
+            )
+        }
     }
 
     func testNativeToolbarKeepsTheModePickerAheadOfOverflowActions() throws {
@@ -11283,6 +11252,104 @@ private func connection(
         duration: duration,
         legs: []
     )
+}
+
+private enum ConnectionSummaryTestInteraction {
+    case doubleClick(at: NSPoint)
+    case commandClickingEachSummaryRow
+}
+
+/// Exercises either supported new-window shortcut on the rendered connection summary.
+@MainActor
+private func connectionCardOpenCount(
+    after interaction: ConnectionSummaryTestInteraction,
+    showsConnectionBadges: Bool
+) throws -> Int {
+    var openCount = 0
+    let card = ConnectionCard(
+        number: 1,
+        connection: connection(id: "connection-double-click"),
+        timetable: IDOSTimetable(slug: "vlaky", displayName: "Trains"),
+        client: MockIDOSClient(),
+        isShortest: false,
+        showsConnectionBadges: showsConnectionBadges,
+        showsItemDetails: false,
+        showsServiceInformationText: false,
+        showsStopNoteText: false,
+        isPerformingAction: false,
+        timeFrameCoordinateSpace: nil,
+        openConnection: { openCount += 1 },
+        openService: { _ in },
+        performEmailAction: { _ in },
+        performCalendarAction: { _ in },
+        performPDFAction: { _ in },
+        fallbackServiceDate: nil,
+        openStationTimetable: nil,
+        openDepartures: nil
+    )
+    let hostingView = NSHostingView(
+        rootView: card.frame(width: 700, height: 140, alignment: .topLeading)
+    )
+    hostingView.frame = NSRect(x: 0, y: 0, width: 700, height: 140)
+    let window = NSWindow(
+        contentRect: hostingView.frame,
+        styleMask: .borderless,
+        backing: .buffered,
+        defer: false
+    )
+    window.contentView = hostingView
+    window.makeKeyAndOrderFront(nil)
+    hostingView.layoutSubtreeIfNeeded()
+    defer { window.orderOut(nil) }
+
+    switch interaction {
+    case let .doubleClick(location):
+        for clickCount in 1...2 {
+            for eventType in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                let event = NSEvent.mouseEvent(
+                    with: eventType,
+                    location: location,
+                    modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime + Double(clickCount) * 0.01,
+                    windowNumber: window.windowNumber,
+                    context: nil,
+                    eventNumber: 0,
+                    clickCount: clickCount,
+                    pressure: eventType == .leftMouseDown ? 1 : 0
+                )
+                if let event {
+                    window.sendEvent(event)
+                }
+            }
+        }
+    case .commandClickingEachSummaryRow:
+        let clickViews = hostingView.allDescendantViews
+            .compactMap { $0 as? ModifierClickCaptureView }
+            .filter { $0.requiredModifierFlags.contains(.command) }
+        XCTAssertEqual(clickViews.count, 2)
+        XCTAssertTrue(clickViews.allSatisfy { $0.bounds.width > 0 && $0.bounds.height > 0 })
+
+        for (eventNumber, clickView) in clickViews.enumerated() {
+            let location = clickView.convert(
+                NSPoint(x: clickView.bounds.midX, y: clickView.bounds.midY),
+                to: nil
+            )
+            let event = try XCTUnwrap(NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: location,
+                modifierFlags: [.command],
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber,
+                context: nil,
+                eventNumber: eventNumber,
+                clickCount: 1,
+                pressure: 1
+            ))
+            XCTAssertNil(clickView.process(event))
+        }
+    }
+
+    return openCount
 }
 
 private func departure(

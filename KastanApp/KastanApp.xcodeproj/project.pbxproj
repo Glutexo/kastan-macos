@@ -578,7 +578,7 @@
 			repositoryURL = "https://github.com/Glutexo/kastan.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 0.10.1;
+				minimumVersion = 0.10.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

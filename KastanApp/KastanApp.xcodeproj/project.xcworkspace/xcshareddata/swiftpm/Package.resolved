@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Glutexo/kastan.git",
       "state" : {
-        "revision" : "b00cec9c722017662aa16340e2fa91dc1876e5a5",
-        "version" : "0.10.1"
+        "revision" : "a2409c29addf84ea68aa25c4ea7d84a8df522171",
+        "version" : "0.10.0"
       }
     }
   ],

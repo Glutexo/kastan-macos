@@ -234,6 +234,10 @@
 "Send by Email" = "Poslat na e-mail";
 "Send Connection by Email" = "Poslat spojení na e-mail";
 "Share Link" = "Sdílet odkaz";
+"Select connection %lld" = "Vybrat spojení %lld";
+"Selected Connections" = "Vybraná spojení";
+"Share Selection" = "Sdílet výběr";
+"Print Selection…" = "Vytisknout výběr…";
 "Share Text" = "Sdílet text";
 "Shortest" = "Nejrychlejší";
 "Show alternating row backgrounds" = "Střídat barvy pozadí řádků";

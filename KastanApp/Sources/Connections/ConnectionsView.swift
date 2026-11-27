@@ -289,12 +289,18 @@ struct ConnectionsView: View {
                 loadEarlier: { await model.loadMore(.earlier) },
                 loadLater: { await model.loadMore(.later) }
             ) {
-                if model.isSearchFormCollapsed {
-                    connectionSearchSummaryBar
-                    .transition(.opacity)
-                } else {
-                    searchPanel(layout: layout)
-                        .transition(.opacity)
+                VStack(alignment: .leading, spacing: 10) {
+                    if model.isSearchFormCollapsed {
+                        connectionSearchSummaryBar
+                            .transition(.opacity)
+                    } else {
+                        searchPanel(layout: layout)
+                            .transition(.opacity)
+                    }
+
+                    if !model.selectedConnectionIDs.isEmpty {
+                        selectionActions
+                    }
                 }
             } resultsContent: {
                 resultsPanel
@@ -344,6 +350,29 @@ struct ConnectionsView: View {
         .navigationTitle(
             MainWindowTitlePresentation.connections(from: model.from, to: model.to)
         )
+    }
+
+    /// Keeps the batch actions in reach while the passenger scrolls through the result list.
+    private var selectionActions: some View {
+        HStack(spacing: 8) {
+            Text(AppLocalization.plural("%lld selected connections", count: model.selectedConnectionIDs.count))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button {
+                let text = CLIPlainTextPresentation().connections(model.selectedConnections, includesLinks: true)
+                ResultSharingServicePickerPresenter.shared.show(text: text)
+            } label: {
+                Label("Share Selection", systemImage: "square.and.arrow.up")
+            }
+            Button {
+                let text = CLIPlainTextPresentation().connections(model.selectedConnections, includesLinks: false)
+                guard !text.isEmpty, NSPrintOperation.current == nil else { return }
+                _ = ResultPrinting.operation(for: text, title: AppLocalization.string("Selected Connections")).run()
+            } label: {
+                Label("Print Selection…", systemImage: "printer")
+            }
+        }
+        .controlSize(.small)
     }
 
     private var resultsPanel: some View {
@@ -1217,7 +1246,11 @@ struct ConnectionsView: View {
                             from: model.date
                         ),
                         openStationTimetable: openStationTimetable,
-                        openDepartures: openDepartures
+                        openDepartures: openDepartures,
+                        isSelected: Binding(
+                            get: { model.selectedConnectionIDs.contains(connection.appIdentity) },
+                            set: { model.setConnectionSelected($0, id: connection.appIdentity) }
+                        )
                     )
                 }
             }
@@ -1775,6 +1808,7 @@ struct ConnectionCard: View {
     let fallbackServiceDate: TransitDate?
     let openStationTimetable: ((StationTimetableSelection, StationTimetableOpenDestination) -> Void)?
     let openDepartures: ((DepartureSearchSelection, DepartureSearchOpenDestination) -> Void)?
+    var isSelected: Binding<Bool>? = nil
 
     @ViewBuilder
     var body: some View {
@@ -1793,6 +1827,13 @@ struct ConnectionCard: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    if let number, let isSelected {
+                        Toggle(isOn: isSelected) {
+                            Text(AppLocalization.string("Select connection %lld", number))
+                        }
+                        .toggleStyle(.checkbox)
+                        .labelsHidden()
+                    }
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         if let number {
                             Text(AppLocalization.string("Connection %lld", number))

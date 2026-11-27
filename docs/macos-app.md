@@ -287,6 +287,11 @@ one ordinary provider is registered.
   terminal-only ANSI color and emphasis codes. Share Text remains available when IDOS does not supply a permanent
   result link and becomes the primary sharing action for a data source that does not advertise permanent service
   links.
+- Check the boxes on the connection cards to select multiple results. The selection count and actions stay above
+  the scrolling list. Share Selection opens the macOS sharing picker with one text itinerary and each available
+  permanent link. Print Selection opens the macOS print dialog for one itinerary, which can also be saved as a PDF.
+  Both actions use the order shown in the list. Loading earlier or later results keeps the selection, and starting
+  a new search clears it.
 - Connection cards and complete connections offer Send by Email when IDOS supplies the data needed for that result.
   Activating it normally opens a confirmation sheet with IDOS's localized default message and generated PDF and
   calendar attachment names, extends the IDOS website attribution with Kaštan's GitHub project URL, and keeps the

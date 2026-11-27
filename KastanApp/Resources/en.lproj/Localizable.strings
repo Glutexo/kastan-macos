@@ -234,6 +234,10 @@
 "Send by Email" = "Send by Email";
 "Send Connection by Email" = "Send Connection by Email";
 "Share Link" = "Share Link";
+"Select connection %lld" = "Select connection %lld";
+"Selected Connections" = "Selected Connections";
+"Share Selection" = "Share Selection";
+"Print Selection…" = "Print Selection…";
 "Share Text" = "Share Text";
 "Shortest" = "Shortest";
 "Show alternating row backgrounds" = "Show alternating row backgrounds";

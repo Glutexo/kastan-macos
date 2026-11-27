@@ -56,6 +56,24 @@
 			<string>Aktuální zpoždění %lld minut</string>
 		</dict>
 	</dict>
+	<key>%lld selected connections</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@connections@</string>
+		<key>connections</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld vybrané spojení</string>
+			<key>few</key>
+			<string>%lld vybraná spojení</string>
+			<key>other</key>
+			<string>%lld vybraných spojení</string>
+		</dict>
+	</dict>
 	<key>Up to %lld transfers</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

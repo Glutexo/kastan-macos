@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import Kastan
 @testable import KastanApp
+import PDFKit
 import SwiftUI
 import XCTest
 
@@ -3038,6 +3039,76 @@ final class KastanAppTests: XCTestCase {
 
         XCTAssertTrue(text.contains("(City Network)"))
         XCTAssertFalse(text.contains("(Trains)"))
+    }
+
+    func testBatchConnectionTextIncludesTheSchedulesAndSharesAvailableLinks() throws {
+        let czech = try XCTUnwrap(localizationBundle(languageCode: "cs"))
+        let presentation = CLIPlainTextPresentation(bundle: czech)
+        let first = TransitConnection(
+            id: "first",
+            departureDate: TransitDate(year: 2026, month: 11, day: 27),
+            departureTime: "23:42",
+            departureStation: "Praha",
+            arrivalTime: "00:54",
+            arrivalStation: "Pardubice",
+            duration: "1 h 12 min",
+            legs: [TransitConnectionLeg(
+                name: "R 879",
+                transportMode: .train,
+                departureTime: "23:42",
+                fromStation: "Praha",
+                arrivalTime: "00:54",
+                toStation: "Pardubice"
+            )],
+            shareURL: "https://example.com/first"
+        )
+        let second = TransitConnection(
+            id: "second",
+            departureDate: TransitDate(year: 2026, month: 11, day: 28),
+            departureTime: "00:12",
+            departureStation: "Praha",
+            arrivalTime: "01:45",
+            arrivalStation: "Pardubice",
+            duration: "1 h 33 min",
+            legs: []
+        )
+
+        let printed = presentation.connections([first, second], includesLinks: false)
+        XCTAssertEqual(printed, """
+            Vybraná spojení
+
+            1. 27.11.2026 · 🕒 23:42 Praha → 00:54 Pardubice (1 h 12 min)
+               🚆 R 879 Praha 23:42 → 00:54 Pardubice
+
+            2. 28.11.2026 · 🕒 00:12 Praha → 01:45 Pardubice (1 h 33 min)
+            """)
+        let shared = presentation.connections([first, second], includesLinks: true)
+        XCTAssertTrue(shared.contains("\n   https://example.com/first\n\n2. "))
+        XCTAssertEqual(shared.replacingOccurrences(of: "\n   https://example.com/first", with: ""), printed)
+        XCTAssertEqual(presentation.connections([], includesLinks: true), "")
+        XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 1, bundle: czech), "1 vybrané spojení")
+        XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 3, bundle: czech), "3 vybraná spojení")
+        XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 5, bundle: czech), "5 vybraných spojení")
+    }
+
+    func testPrintingLongConnectionSelectionPaginatesTheWholeItinerary() throws {
+        let destination = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID()).pdf")
+        defer { try? FileManager.default.removeItem(at: destination) }
+
+        let lines = (1...160).map { "\($0). Praha 23:42 → Pardubice 00:54" }
+        let operation = ResultPrinting.operation(for: lines.joined(separator: "\n"), title: "Selected Connections")
+        operation.showsPrintPanel = false
+        operation.showsProgressPanel = false
+        operation.printInfo.jobDisposition = .save
+        operation.printInfo.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = destination
+        XCTAssertTrue(operation.run())
+
+        let document = try XCTUnwrap(PDFDocument(url: destination))
+        XCTAssertGreaterThan(document.pageCount, 1)
+        let printed = try XCTUnwrap(document.string)
+        for line in lines {
+            XCTAssertTrue(printed.contains(line), "Missing printed line \(line)")
+        }
     }
 
     func testConnectionHTMLForMailEscapesIDOSAndIntroductoryContent() throws {
@@ -9336,6 +9407,33 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(model.connections.map(\.id), ["connection-0", "connection-1", "connection-2"])
         let directions = await client.connectionPageDirections
         XCTAssertEqual(directions, [.earlier, .later])
+    }
+
+    func testConnectionSelectionFollowsResultOrderAndClearsOnNewSearch() async {
+        let client = MockIDOSClient()
+        await client.configureConnectionPages(
+            earlier: [connection(id: "connection-0", timetableIdentifier: "vlaky")],
+            later: [connection(id: "connection-2", timetableIdentifier: "vlaky")]
+        )
+        let model = ConnectionsViewModel(client: client)
+        model.from = "Praha"
+        model.to = "Brno"
+
+        await model.search()
+        let firstResultID = model.connections[0].appIdentity
+        model.setConnectionSelected(true, id: firstResultID)
+        await model.loadMore(.earlier)
+        await model.loadMore(.later)
+        XCTAssertEqual(model.selectedConnections.map(\.id), ["connection-1"])
+
+        model.setConnectionSelected(true, id: model.connections[0].appIdentity)
+        XCTAssertEqual(model.selectedConnections.map(\.id), ["connection-0", "connection-1"])
+        model.setConnectionSelected(false, id: firstResultID)
+        XCTAssertEqual(model.selectedConnections.map(\.id), ["connection-0"])
+
+        await model.search()
+        XCTAssertTrue(model.selectedConnectionIDs.isEmpty)
+        XCTAssertEqual(model.connections.map(\.id), ["connection-1"])
     }
 
     func testConnectionRefreshRecoversAnExpiredPagingSession() async {

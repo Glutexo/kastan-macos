@@ -3,6 +3,31 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Prints a complete result document through the native macOS print dialog.
+@MainActor
+enum ResultPrinting {
+    static func operation(for text: String, title: String) -> NSPrintOperation {
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .automatic
+        printInfo.isVerticallyCentered = false
+
+        let width = max(1, printInfo.paperSize.width - printInfo.leftMargin - printInfo.rightMargin)
+        let view = NSTextView(frame: NSRect(x: 0, y: 0, width: width, height: 1))
+        view.isVerticallyResizable = true
+        view.textContainer?.containerSize = NSSize(width: width, height: .greatestFiniteMagnitude)
+        view.textStorage?.setAttributedString(NSAttributedString(string: text, attributes: [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.black,
+        ]))
+        view.sizeToFit()
+
+        let operation = NSPrintOperation(view: view, printInfo: printInfo)
+        operation.jobTitle = title
+        return operation
+    }
+}
+
 /// Describes whether a PDF export should open in Preview or remain as a downloaded file.
 enum PDFExportAction: Equatable {
     case openInPreview

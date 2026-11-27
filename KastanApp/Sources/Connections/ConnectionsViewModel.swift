@@ -641,6 +641,7 @@ final class ConnectionsViewModel: ObservableObject {
     /// Retains the passenger's summary-or-editor choice while the main window displays another search mode.
     @Published private(set) var isSearchFormCollapsed = false
     @Published private(set) var connections: [TransitConnection] = []
+    @Published private(set) var selectedConnectionIDs: Set<AppTransitValueIdentity> = []
     @Published private(set) var hasCompletedSearch = false
     @Published private(set) var isSearching = false
     @Published private(set) var isLoadingEarlier = false
@@ -792,6 +793,7 @@ final class ConnectionsViewModel: ObservableObject {
         onlyDirect = false
         rememberedTransferValues = RememberedTransferValues()
         journeyOptions = Self.initialJourneyOptions(options: connectionSearchOptions)
+        selectedConnectionIDs = []
         connections = []
         hasCompletedSearch = false
         resultPage = nil
@@ -1453,6 +1455,7 @@ final class ConnectionsViewModel: ObservableObject {
             errorMessage = AppLocalization.string("Enter both a departure and an arrival place.")
             return
         }
+        selectedConnectionIDs = []
         if let endpointValidationMessage {
             connections = []
             resultPage = nil
@@ -1924,6 +1927,21 @@ final class ConnectionsViewModel: ObservableObject {
             connections.insert(contentsOf: uniqueConnections, at: 0)
         } else {
             connections.append(contentsOf: uniqueConnections)
+        }
+    }
+
+    /// Exports the checked connections in their current result order, including after paging.
+    var selectedConnections: [TransitConnection] {
+        connections.filter { selectedConnectionIDs.contains($0.appIdentity) }
+    }
+
+    func setConnectionSelected(_ isSelected: Bool, id: AppTransitValueIdentity) {
+        guard !isSearching, connections.contains(where: { $0.appIdentity == id }) else { return }
+
+        if isSelected {
+            selectedConnectionIDs.insert(id)
+        } else {
+            selectedConnectionIDs.remove(id)
         }
     }
 

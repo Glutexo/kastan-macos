@@ -21,7 +21,29 @@ struct CLIPlainTextPresentation {
         ].compactMap(\.self)
         let labelPrefix = labels.isEmpty ? "" : "\(labels.joined(separator: " · ")) — "
 
-        var summary = "1. \(labelPrefix)🕒 \(connection.departureTime) \(connection.departureStation) → \(connection.arrivalTime) \(connection.arrivalStation)"
+        return """
+        🧭 \(text("Connections")) \(connection.departureStation) → \(connection.arrivalStation) (\(timetableName(timetable))):
+        1. \(labelPrefix)\(connectionSchedule(connection))
+        """
+    }
+
+    /// Formats the checked schedules as one document and includes permanent links in the shareable version.
+    func connections(_ connections: [TransitConnection], includesLinks: Bool) -> String {
+        guard !connections.isEmpty else { return "" }
+
+        let schedules = connections.enumerated().map { index, connection in
+            let departureDate = connection.departureDate.map { "\($0.day).\($0.month).\($0.year) · " } ?? ""
+            var summary = "\(index + 1). \(departureDate)\(connectionSchedule(connection))"
+            if includesLinks, let url = connection.shareURL.flatMap(AppLanguagePreference.localizedResultURL) {
+                summary += "\n   \(url.absoluteString)"
+            }
+            return summary
+        }
+        return ([text("Selected Connections")] + schedules).joined(separator: "\n\n")
+    }
+
+    private func connectionSchedule(_ connection: TransitConnection) -> String {
+        var summary = "🕒 \(connection.departureTime) \(connection.departureStation) → \(connection.arrivalTime) \(connection.arrivalStation)"
         if !connection.duration.isEmpty {
             summary += " (\(connection.duration))"
         }
@@ -36,10 +58,7 @@ struct CLIPlainTextPresentation {
             summary += "\n\(legs.joined(separator: "\n"))"
         }
 
-        return """
-        🧭 \(text("Connections")) \(connection.departureStation) → \(connection.arrivalStation) (\(timetableName(timetable))):
-        \(summary)
-        """
+        return summary
     }
 
     /// Formats the selected connection as the same portable HTML summary offered by the CLI.

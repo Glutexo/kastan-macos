@@ -1217,8 +1217,6 @@ struct ConnectionsView: View {
                         isPerformingAction: model.processingEmailConnectionID == connection.appIdentity ||
                             model.processingCalendarConnectionID == connection.appIdentity ||
                             model.processingPDFConnectionID == connection.appIdentity,
-                        showsActionMenu: true,
-                        showsOpenConnectionButton: optionIsPressed,
                         timeFrameCoordinateSpace: nil,
                         openConnection: {
                             openWindow(
@@ -1807,8 +1805,6 @@ struct ConnectionCard: View {
     let showsServiceInformationText: Bool
     let showsStopNoteText: Bool
     let isPerformingAction: Bool
-    let showsActionMenu: Bool
-    let showsOpenConnectionButton: Bool
     let timeFrameCoordinateSpace: String?
     let openConnection: (() -> Void)?
     let openService: (ServiceSelection) -> Void
@@ -1823,7 +1819,7 @@ struct ConnectionCard: View {
 
     @ViewBuilder
     var body: some View {
-        if showsActionMenu, let openConnection {
+        if let openConnection {
             cardContent
                 .contentShape(Rectangle())
                 .contextMenu {
@@ -1877,15 +1873,6 @@ struct ConnectionCard: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) {
-                        openConnection?()
-                    }
-                    .overlay {
-                        if let openConnection {
-                            CommandClickOverlay(action: openConnection)
-                        }
-                    }
                     if showsSelectionCheckbox, let number, let isSelected {
                         Toggle(isOn: isSelected) {
                             Text(AppLocalization.string("Select connection %lld", number))
@@ -1893,15 +1880,7 @@ struct ConnectionCard: View {
                         .toggleStyle(.checkbox)
                         .labelsHidden()
                     }
-                    if showsOpenConnectionButton, let openConnection {
-                        Button(action: openConnection) {
-                            Label("Open connection in new window", systemImage: "macwindow")
-                                .labelStyle(.iconOnly)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Open connection in new window")
-                    }
-                    if showsActionMenu, let openConnection {
+                    if let openConnection {
                         Menu {
                             actionMenuContent(openInNewWindow: openConnection)
                         } label: {
@@ -1938,15 +1917,6 @@ struct ConnectionCard: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    openConnection?()
-                }
-                .overlay {
-                    if let openConnection {
-                        CommandClickOverlay(action: openConnection)
-                    }
-                }
 
                 if !connection.legs.isEmpty {
                     Divider()
@@ -1988,26 +1958,13 @@ struct ConnectionCard: View {
         CLIPlainTextPresentation().connection(connection, timetable: timetable)
     }
 
-    @ViewBuilder
     private func actionMenuContent(openInNewWindow: @escaping () -> Void) -> some View {
-        if let isSelected {
-            Button {
-                isSelected.wrappedValue.toggle()
-            } label: {
-                if isSelected.wrappedValue {
-                    Label("Deselect Connection", systemImage: "minus.square")
-                } else {
-                    Label("Select Connection", systemImage: "checkmark.square")
-                }
-            }
-            Divider()
-        }
-
         ConnectionContextMenuContent(
             availability: .connection(client.descriptor),
             permanentLink: connectionActionURL,
             shareText: connectionShareText,
             isPerformingAction: isPerformingAction,
+            isSelected: isSelected,
             openInNewWindow: openInNewWindow,
             openStationTimetable: connectionStationTimetableAction,
             openDepartures: connectionDepartureAction,
@@ -2148,8 +2105,6 @@ struct ConnectionDetailView: View {
                     showsServiceInformationText: showsServiceInformationText,
                     showsStopNoteText: showsStopNoteText,
                     isPerformingAction: isPerformingAction,
-                    showsActionMenu: false,
-                    showsOpenConnectionButton: false,
                     timeFrameCoordinateSpace: Self.scrollCoordinateSpace,
                     openConnection: nil,
                     openService: { openWindow(id: AppWindow.serviceDetail, value: $0) },

@@ -1224,22 +1224,6 @@ struct OptionClickOverlay: NSViewRepresentable {
     }
 }
 
-/// Gives Command-click an independent action even when SwiftUI does not activate the underlying button.
-struct CommandClickOverlay: NSViewRepresentable {
-    let action: () -> Void
-
-    func makeNSView(context: Context) -> ModifierClickCaptureView {
-        ModifierClickCaptureView(
-            requiredModifierFlags: .command,
-            action: { _ in action() }
-        )
-    }
-
-    func updateNSView(_ nsView: ModifierClickCaptureView, context: Context) {
-        nsView.action = { _ in action() }
-    }
-}
-
 /// Captures one modifier-click and retains the complete modifier set for destination routing.
 struct ModifierClickOverlay: NSViewRepresentable {
     let requiredModifierFlags: NSEvent.ModifierFlags

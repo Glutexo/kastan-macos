@@ -9,6 +9,7 @@ enum ResultContextTarget: CaseIterable {
 /// Defines stable contextual-menu contents independently of the visible ellipsis or right-click gesture.
 enum ResultContextAction: Hashable, Identifiable {
     case preview
+    case selectConnection
     case openInNewWindow
     case separator
     case detail(ResultDetailAction)
@@ -29,7 +30,7 @@ enum ResultContextAction: Hashable, Identifiable {
 
         switch target {
         case .connection:
-            navigation = [.openInNewWindow]
+            navigation = [.selectConnection, .openInNewWindow]
             details = ResultDetailAction.availableActions(
                 canSendByEmail: availability.canSendByEmail,
                 canAddToCalendar: availability.canAddToCalendar,
@@ -56,6 +57,7 @@ struct ResultContextActionLabel: View {
     let calendarExportAction: CalendarExportAction
     let pdfExportAction: PDFExportAction
     let sharingAction: ResultSharingAction
+    let isConnectionSelected: Bool
 
     init(
         action: ResultContextAction,
@@ -63,7 +65,8 @@ struct ResultContextActionLabel: View {
         emailAction: ConnectionEmailAction = .sendViaIDOS,
         calendarExportAction: CalendarExportAction = .addToCalendar,
         pdfExportAction: PDFExportAction = .openInPreview,
-        sharingAction: ResultSharingAction = .link
+        sharingAction: ResultSharingAction = .link,
+        isConnectionSelected: Bool = false
     ) {
         self.action = action
         self.target = target
@@ -71,6 +74,7 @@ struct ResultContextActionLabel: View {
         self.calendarExportAction = calendarExportAction
         self.pdfExportAction = pdfExportAction
         self.sharingAction = sharingAction
+        self.isConnectionSelected = isConnectionSelected
     }
 
     @ViewBuilder
@@ -78,6 +82,12 @@ struct ResultContextActionLabel: View {
         switch action {
         case .preview:
             Label("Preview service", systemImage: "eye")
+        case .selectConnection:
+            if isConnectionSelected {
+                Label("Deselect Connection", systemImage: "minus.square")
+            } else {
+                Label("Select Connection", systemImage: "checkmark.square")
+            }
         case .openInNewWindow:
             switch target {
             case .connection:
@@ -112,6 +122,7 @@ struct ConnectionContextMenuContent: View {
     let permanentLink: URL?
     let shareText: String
     let isPerformingAction: Bool
+    let isSelected: Binding<Bool>?
     let openInNewWindow: () -> Void
     let openStationTimetable: ((StationTimetableOpenDestination) -> Void)?
     let openDepartures: ((DepartureSearchOpenDestination) -> Void)?
@@ -136,6 +147,18 @@ struct ConnectionContextMenuContent: View {
         switch action {
         case .preview:
             EmptyView()
+        case .selectConnection:
+            if let isSelected {
+                Button {
+                    isSelected.wrappedValue.toggle()
+                } label: {
+                    ResultContextActionLabel(
+                        action: action,
+                        target: .connection,
+                        isConnectionSelected: isSelected.wrappedValue
+                    )
+                }
+            }
         case .openInNewWindow:
             Button(action: openInNewWindow) {
                 ResultContextActionLabel(action: action, target: .connection)
@@ -251,7 +274,7 @@ struct ServiceContextMenuContent: View {
             Button(action: showPreview) {
                 ResultContextActionLabel(action: action, target: .service)
             }
-        case .openInNewWindow:
+        case .selectConnection, .openInNewWindow:
             EmptyView()
         case .separator:
             Divider()

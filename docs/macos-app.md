@@ -287,8 +287,8 @@ one ordinary provider is registered.
   terminal-only ANSI color and emphasis codes. Share Text remains available when IDOS does not supply a permanent
   result link and becomes the primary sharing action for a data source that does not advertise permanent service
   links.
-- Use Select Connection or Deselect Connection in a result's action menu, or hold Option to reveal each card's
-  checkbox to the left of the Open in New Window button. The checkboxes stay visible while any connection is
+- Use Select Connection or Deselect Connection in a result's action menu, or hold Option to reveal the checkbox
+  next to each card's ellipsis menu. The checkboxes stay visible while any connection is
   selected or Option is held. The selection count and actions stay above the scrolling list. Share Selection opens
   the macOS sharing picker with one text itinerary and each available permanent link. Print Selection opens the
   macOS print dialog for one itinerary, which can also be saved as a PDF. Both actions use the order shown in the
@@ -350,16 +350,15 @@ one ordinary provider is registered.
   Complete service information is independent of the compact row setting and starts collapsed beneath its own
   route-level disclosure heading.
   Cards always retain line colors and transport symbols. Right-clicking anywhere on a connection card
-  opens the same complete action menu as its ellipsis button, with Open in new window ahead of email,
-  calendar, PDF, and sharing actions. Right-clicking a particular service row stays scoped to that service and
+  opens the same complete action menu as its ellipsis button. The first group combines Select Connection or
+  Deselect Connection with Open in new window, which opens the complete connection in an independent window.
+  Right-clicking a particular service row stays scoped to that service and
   offers its own preview followed by calendar, PDF, and sharing actions rather
   than falling through to the enclosing connection. All available detail actions are selectable on the first menu opening;
   the chosen action loads the complete service data only when needed and then continues automatically. The same
   service-specific menu is available on station-board rows. A trackpad Force Click on either kind of service row
-  opens the identical compact complete-route preview at the detail view's minimum supported width. Double-clicking or
-  Command-clicking anywhere across a connection's time or route summary
-  opens that complete connection in an independent window; holding Option reveals the window button in the connection
-  header as an alternative. An ordinary service click opens the selected service's detail window, including while
+  opens the identical compact complete-route preview at the detail view's minimum supported width. An ordinary
+  service click opens the selected service's detail window, including while
   another service-detail window is already open.
 - Long service routes in independent windows and Force Click previews initially bring the departure stop from the
   originating search toward the top. The window leaves a safe clearance below its toolbar, while the preview leaves

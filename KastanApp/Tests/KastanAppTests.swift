@@ -6488,8 +6488,11 @@ final class KastanAppTests: XCTestCase {
         }
     }
 
-    func testConnectionHeaderOpenButtonAppearsOnlyWhileOptionIsPressed() {
-        func openButtonCount(optionIsPressed: Bool) -> Int {
+    func testConnectionCheckboxSitsToTheLeftOfTheOptionOpenButton() throws {
+        var isSelected = false
+        var openCount = 0
+
+        func checkHeaderButtons(optionIsPressed: Bool) throws {
             let card = ConnectionCard(
                 number: 1,
                 connection: connection(id: "connection-open-button"),
@@ -6501,17 +6504,19 @@ final class KastanAppTests: XCTestCase {
                 showsServiceInformationText: false,
                 showsStopNoteText: false,
                 isPerformingAction: false,
-                showsActionMenu: true,
+                showsActionMenu: false,
                 showsOpenConnectionButton: optionIsPressed,
                 timeFrameCoordinateSpace: nil,
-                openConnection: {},
+                openConnection: { openCount += 1 },
                 openService: { _ in },
                 performEmailAction: { _ in },
                 performCalendarAction: { _ in },
                 performPDFAction: { _ in },
                 fallbackServiceDate: nil,
                 openStationTimetable: nil,
-                openDepartures: nil
+                openDepartures: nil,
+                showsSelectionCheckbox: true,
+                isSelected: Binding(get: { isSelected }, set: { isSelected = $0 })
             )
             let hostingView = NSHostingView(rootView: card.frame(width: 700))
             hostingView.frame = NSRect(x: 0, y: 0, width: 700, height: 180)
@@ -6526,11 +6531,35 @@ final class KastanAppTests: XCTestCase {
             hostingView.layoutSubtreeIfNeeded()
             defer { window.orderOut(nil) }
 
-            return hostingView.allDescendantViews.compactMap { $0 as? NSButton }.count
+            let buttons = hostingView.allDescendantViews.compactMap { $0 as? NSButton }
+            XCTAssertEqual(buttons.count, optionIsPressed ? 1 : 0)
+            guard optionIsPressed else { return }
+
+            let openButton = try XCTUnwrap(buttons.first)
+            let openButtonFrame = openButton.convert(openButton.bounds, to: nil)
+            let checkboxLocation = NSPoint(x: openButtonFrame.minX - 19, y: openButtonFrame.midY)
+            for eventType in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                let event = try XCTUnwrap(NSEvent.mouseEvent(
+                    with: eventType,
+                    location: checkboxLocation,
+                    modifierFlags: [.option],
+                    timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber,
+                    context: nil,
+                    eventNumber: 0,
+                    clickCount: 1,
+                    pressure: eventType == .leftMouseDown ? 1 : 0
+                ))
+                window.sendEvent(event)
+            }
+            XCTAssertTrue(isSelected)
+            XCTAssertEqual(openCount, 0)
+            openButton.performClick(nil)
+            XCTAssertEqual(openCount, 1)
         }
 
-        let hiddenButtonCount = openButtonCount(optionIsPressed: false)
-        XCTAssertEqual(openButtonCount(optionIsPressed: true), hiddenButtonCount + 1)
+        try checkHeaderButtons(optionIsPressed: false)
+        try checkHeaderButtons(optionIsPressed: true)
     }
 
     func testNativeToolbarKeepsTheModePickerAheadOfOverflowActions() throws {

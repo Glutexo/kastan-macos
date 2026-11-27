@@ -1838,13 +1838,6 @@ struct ConnectionCard: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    if showsSelectionCheckbox, let number, let isSelected {
-                        Toggle(isOn: isSelected) {
-                            Text(AppLocalization.string("Select connection %lld", number))
-                        }
-                        .toggleStyle(.checkbox)
-                        .labelsHidden()
-                    }
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         if let number {
                             Text(AppLocalization.string("Connection %lld", number))
@@ -1892,6 +1885,13 @@ struct ConnectionCard: View {
                         if let openConnection {
                             CommandClickOverlay(action: openConnection)
                         }
+                    }
+                    if showsSelectionCheckbox, let number, let isSelected {
+                        Toggle(isOn: isSelected) {
+                            Text(AppLocalization.string("Select connection %lld", number))
+                        }
+                        .toggleStyle(.checkbox)
+                        .labelsHidden()
                     }
                     if showsOpenConnectionButton, let openConnection {
                         Button(action: openConnection) {

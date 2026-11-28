@@ -6597,6 +6597,46 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(selection, .departures)
     }
 
+    func testNativeToolbarUsesIconsWhenNarrowAndRestoresLabelsWhenWidened() throws {
+        var selection = AppSection.connections
+        let coordinator = MainWindowToolbarInstaller.Coordinator(
+            selection: Binding(get: { selection }, set: { selection = $0 }),
+            connectionBatch: ConnectionBatch(connections: [connection(id: "mode-toolbar")], isSelection: false),
+            openFavoriteTimetables: {},
+            openAppInformation: {}
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 950, height: 540),
+            styleMask: [.titled, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        coordinator.install(on: window)
+        defer { coordinator.uninstall() }
+
+        let item = try XCTUnwrap(coordinator.toolbar.items.first { $0.itemIdentifier == .searchMode })
+        let labels = AppSection.allCases.map { AppLocalization.string($0.localizationKey) }
+        let wideControl = try XCTUnwrap(item.view as? NSSegmentedControl)
+        XCTAssertEqual(labels.indices.compactMap(wideControl.label(forSegment:)), labels)
+
+        window.setContentSize(NSSize(width: KastanApp.minimumMainWindowWidth, height: 540))
+        let compactControl = try XCTUnwrap(item.view as? NSSegmentedControl)
+        XCTAssertLessThan(compactControl.fittingSize.width, wideControl.fittingSize.width)
+        XCTAssertTrue(labels.indices.allSatisfy { compactControl.label(forSegment: $0)?.isEmpty != false })
+        XCTAssertEqual(labels.indices.compactMap(compactControl.toolTip(forSegment:)), labels)
+        XCTAssertEqual(labels.indices.compactMap { compactControl.image(forSegment: $0)?.accessibilityDescription }, labels)
+
+        compactControl.selectedSegment = 2
+        compactControl.sendAction(compactControl.action, to: compactControl.target)
+        XCTAssertEqual(selection, .stationTimetables)
+        XCTAssertEqual(item.menuFormRepresentation?.submenu?.items.last?.state, .on)
+
+        window.setContentSize(NSSize(width: 950, height: 540))
+        let restoredControl = try XCTUnwrap(item.view as? NSSegmentedControl)
+        XCTAssertEqual(labels.indices.compactMap(restoredControl.label(forSegment:)), labels)
+        XCTAssertEqual(restoredControl.selectedSegment, 2)
+    }
+
     func testNativeToolbarKeepsBatchActionsAndTheirOverflowLabelsInSync() throws {
         let selection = Binding.constant(AppSection.connections)
         let coordinator = MainWindowToolbarInstaller.Coordinator(

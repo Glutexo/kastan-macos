@@ -183,6 +183,8 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
         private var openAppInformation: () -> Void
         private weak var window: NSWindow?
         private weak var modeControl: NSSegmentedControl?
+        private var modeLabelsWidth: CGFloat = 0
+        private var modeControlShowsIcons = false
         private weak var dataSourceControl: NSPopUpButton?
 
         lazy var toolbar: NSToolbar = {
@@ -248,6 +250,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             updateDataSourceControlState()
             updateDataSourceMenuState()
             updateConnectionBatchItems()
+            updateModePresentation()
         }
 
         func install(on window: NSWindow?) {
@@ -267,11 +270,21 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
                 minimumContentWidth: KastanApp.minimumMainWindowWidth
             )
             window.setFrameTopLeftPoint(topLeft)
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(windowDidResize(_:)),
+                name: NSWindow.didResizeNotification,
+                object: window
+            )
+            updateModePresentation()
         }
 
         func uninstall() {
-            if window?.toolbar === toolbar {
-                window?.toolbar = nil
+            if let window {
+                NotificationCenter.default.removeObserver(self, name: NSWindow.didResizeNotification, object: window)
+                if window.toolbar === toolbar {
+                    window.toolbar = nil
+                }
             }
             window = nil
             modeControl = nil
@@ -337,14 +350,26 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
         private func makeModeToolbarItem(retainView: Bool) -> NSToolbarItem {
             let item = NSToolbarItem(itemIdentifier: .searchMode)
             let label = AppLocalization.string("Search mode")
+            let modeLabels = sections.map { AppLocalization.string($0.localizationKey) }
             let control = NSSegmentedControl(
-                labels: sections.map { AppLocalization.string($0.localizationKey) },
+                labels: modeLabels,
                 trackingMode: .selectOne,
                 target: self,
                 action: #selector(selectModeSegment(_:))
             )
             control.selectedSegment = sections.firstIndex(of: selection.wrappedValue) ?? 0
             control.setAccessibilityLabel(label)
+            let labelsWidth = control.fittingSize.width
+            let showsIcons = shouldShowModeIcons(labelsWidth: labelsWidth)
+            for (index, section) in sections.enumerated() {
+                let title = modeLabels[index]
+                control.setToolTip(title, forSegment: index)
+                if showsIcons,
+                   let image = NSImage(systemSymbolName: section.systemImage, accessibilityDescription: title) {
+                    control.setImage(image, forSegment: index)
+                    control.setLabel("", forSegment: index)
+                }
+            }
             control.sizeToFit()
 
             item.label = label
@@ -356,6 +381,8 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
 
             if retainView {
                 modeControl = control
+                modeLabelsWidth = labelsWidth
+                modeControlShowsIcons = showsIcons
             }
             return item
         }
@@ -496,7 +523,32 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             allowsDataSourceSelection && dataSourceDescriptors.count > 1
         }
 
-        /// Rebuilds the segmented control when a newly selected provider advertises other modes.
+        /// Reserves room for the window buttons, a readable title, and the toolbar's other controls.
+        private func shouldShowModeIcons(labelsWidth: CGFloat) -> Bool {
+            guard let window else { return false }
+            let windowButtonsWidth: CGFloat = 80
+            let titleAllowance: CGFloat = 120
+            let toolbarInsets: CGFloat = 24
+            let toolbarButtonWidth: CGFloat = 42
+            let toolbarButtonCount: CGFloat = connectionBatch == nil ? 2 : 4
+            let sourcePickerWidth = showsDataSourceSelector ? (dataSourceControl?.fittingSize.width ?? 0) : 0
+            let requiredWidth = labelsWidth + windowButtonsWidth + titleAllowance + toolbarInsets
+                + toolbarButtonCount * toolbarButtonWidth + sourcePickerWidth
+            return window.frame.width < requiredWidth
+        }
+
+        private func updateModePresentation() {
+            guard modeControl != nil, shouldShowModeIcons(labelsWidth: modeLabelsWidth) != modeControlShowsIcons else {
+                return
+            }
+            refreshModeItem()
+        }
+
+        @objc private func windowDidResize(_ notification: Notification) {
+            updateModePresentation()
+        }
+
+        /// Rebuilds the control when the provider's modes or the available toolbar space changes.
         private func refreshModeItem() {
             guard let item = toolbar.items.first(where: { $0.itemIdentifier == .searchMode }) else {
                 return

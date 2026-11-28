@@ -4,9 +4,10 @@
 
 Kaštan includes a native SwiftUI application for macOS 13 or newer. It imports the `Kastan` library directly and
 is composed against `TransitDataSource`; IDOS is currently its only ordinary built-in source. The toolbar and View menu show
-only search modes advertised by the active source, while result menus and toolbars omit unsupported email, calendar,
-PDF, and service-detail actions. Provider-owned timetable and result identities remain qualified during window
-restoration, favorites, paging, and export.
+only search modes advertised by the active source. The toolbar uses icons when the mode labels need more space than
+the window provides, keeping the full names in tooltips and accessibility descriptions. Result menus and toolbars
+omit unsupported email, calendar, PDF, and service-detail actions. Provider-owned timetable and result identities
+remain qualified during window restoration, favorites, paging, and export.
 
 Each main window owns its selected data source and its complete search workspace. A source picker appears in the
 toolbar only when the app is composed with more than one ordinary provider; with the current single ordinary built-in

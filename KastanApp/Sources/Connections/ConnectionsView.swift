@@ -1899,25 +1899,27 @@ struct ConnectionCard: View {
                             ModifierClickOverlay(requiredModifierFlags: .command) { _ in openConnection() }
                         }
                     }
-                    if showsSelectionCheckbox, let number, let isSelected {
-                        Toggle(isOn: isSelected) {
-                            Text(AppLocalization.string("Select connection %lld", number))
-                        }
-                        .toggleStyle(.checkbox)
-                        .labelsHidden()
-                    }
                     if let openConnection {
-                        Menu {
-                            actionMenuContent(openInNewWindow: openConnection)
-                        } label: {
-                            if isPerformingAction {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "ellipsis.circle")
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            if showsSelectionCheckbox, let number, let isSelected {
+                                Toggle(isOn: isSelected) {
+                                    Text(AppLocalization.string("Select connection %lld", number))
+                                }
+                                .toggleStyle(.checkbox)
+                                .labelsHidden()
                             }
+                            Menu {
+                                actionMenuContent(openInNewWindow: openConnection)
+                            } label: {
+                                if isPerformingAction {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Image(systemName: "ellipsis.circle")
+                                }
+                            }
+                            .menuStyle(.borderlessButton)
                         }
-                        .menuStyle(.borderlessButton)
                     }
                 }
 

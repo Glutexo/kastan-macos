@@ -6492,6 +6492,34 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(ResultPreviewLayout.serviceSize, CGSize(width: 400, height: 560))
     }
 
+    func testConnectionRouteSummaryAppearsOnlyWhenItAddsEndpointInformation() {
+        var result = connection(id: "route-summary")
+        XCTAssertTrue(ConnectionResultsPresentation.showsRouteSummary(for: result))
+
+        let directLeg = TransitConnectionLeg(
+            name: "R 879",
+            departureTime: result.departureTime,
+            fromStation: result.departureStation,
+            arrivalTime: result.arrivalTime,
+            toStation: result.arrivalStation
+        )
+        result.legs = [directLeg]
+        XCTAssertFalse(ConnectionResultsPresentation.showsRouteSummary(for: result))
+
+        var firstLeg = directLeg
+        firstLeg.toStation = "Pardubice hl.n."
+        var lastLeg = directLeg
+        lastLeg.fromStation = firstLeg.toStation
+        result.legs = [firstLeg, lastLeg]
+        XCTAssertFalse(ConnectionResultsPresentation.showsRouteSummary(for: result))
+
+        result.legs[0].fromStation = "Praha-Libeň"
+        XCTAssertTrue(ConnectionResultsPresentation.showsRouteSummary(for: result))
+        result.legs[0].fromStation = result.departureStation
+        result.legs[1].toStation = "Brno-Židenice"
+        XCTAssertTrue(ConnectionResultsPresentation.showsRouteSummary(for: result))
+    }
+
     func testDoubleClickingAnywhereInConnectionSummaryOpensItsWindow() throws {
         for showsConnectionBadges in [false, true] {
             XCTAssertEqual(

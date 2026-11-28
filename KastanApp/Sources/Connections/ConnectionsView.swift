@@ -68,6 +68,12 @@ enum ConnectionResultsPresentation: Equatable {
         optionIsPressed || hasSelection
     }
 
+    /// Keeps the route summary when the itinerary doesn't already show both of its endpoints.
+    static func showsRouteSummary(for connection: TransitConnection) -> Bool {
+        connection.legs.first?.fromStation != connection.departureStation ||
+            connection.legs.last?.toStation != connection.arrivalStation
+    }
+
     /// Mirrors the CLI by marking every displayed connection tied for the shortest parsed duration.
     static func shortestConnectionIDs(in connections: [TransitConnection]) -> Set<String> {
         let comparableConnections = connections.compactMap { connection -> (id: String, minutes: Int)? in
@@ -1919,35 +1925,37 @@ struct ConnectionCard: View {
                     }
                 }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack {
-                        Text(connection.departureStation)
-                            .fixedSize(horizontal: true, vertical: false)
-                        Spacer()
-                        Image(systemName: "arrow.right")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text(connection.arrivalStation)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(connection.departureStation)
-                        HStack(spacing: 6) {
-                            Image(systemName: "arrow.down")
+                if ConnectionResultsPresentation.showsRouteSummary(for: connection) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack {
+                            Text(connection.departureStation)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer()
+                            Image(systemName: "arrow.right")
                                 .foregroundStyle(.secondary)
+                            Spacer()
                             Text(connection.arrivalStation)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(connection.departureStation)
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.down")
+                                    .foregroundStyle(.secondary)
+                                Text(connection.arrivalStation)
+                            }
                         }
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    openConnection?()
-                }
-                .overlay {
-                    if let openConnection {
-                        ModifierClickOverlay(requiredModifierFlags: .command) { _ in openConnection() }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        openConnection?()
+                    }
+                    .overlay {
+                        if let openConnection {
+                            ModifierClickOverlay(requiredModifierFlags: .command) { _ in openConnection() }
+                        }
                     }
                 }
 

@@ -3103,9 +3103,29 @@ final class KastanAppTests: XCTestCase {
         )
         XCTAssertEqual(czech.localizedString(forKey: "Share All", value: nil, table: nil), "Sdílet vše")
         XCTAssertEqual(czech.localizedString(forKey: "Print All…", value: nil, table: nil), "Vytisknout vše…")
-        XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 1, bundle: czech), "1 vybrané spojení")
-        XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 3, bundle: czech), "3 vybraná spojení")
-        XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 5, bundle: czech), "5 vybraných spojení")
+    }
+
+    func testConnectionBatchActionLabelsUseLocalizedPluralForms() throws {
+        let czech = try XCTUnwrap(localizationBundle(languageCode: "cs"))
+        let english = try XCTUnwrap(localizationBundle(languageCode: "en"))
+        let connection = connection(id: "selection-label")
+        for (count, czechSelection, englishSelection) in [
+            (1, "1 vybrané spojení", "1 selected connection"),
+            (2, "2 vybraná spojení", "2 selected connections"),
+            (4, "4 vybraná spojení", "4 selected connections"),
+            (5, "5 vybraných spojení", "5 selected connections"),
+            (21, "21 vybraných spojení", "21 selected connections"),
+        ] {
+            let batch = ConnectionBatch(connections: Array(repeating: connection, count: count), isSelection: true)
+            XCTAssertEqual(
+                ConnectionBatchAction.allCases.map { $0.localizedTitle(for: batch, bundle: czech) },
+                ["Sdílet \(czechSelection)", "Vytisknout \(czechSelection)…"]
+            )
+            XCTAssertEqual(
+                ConnectionBatchAction.allCases.map { $0.localizedTitle(for: batch, bundle: english) },
+                ["Share \(englishSelection)", "Print \(englishSelection)…"]
+            )
+        }
     }
 
     func testPrintingLongConnectionSelectionPaginatesTheWholeItinerary() throws {
@@ -6618,13 +6638,20 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(allItems.map(\.label), ["Share All", "Print All…"].map { AppLocalization.string($0) })
         XCTAssertTrue(allItems.allSatisfy { $0.visibilityPriority == .high && $0.action != nil })
 
-        updateBatch(ConnectionBatch(connections: [connection], isSelection: true))
-        let selectionItems = batchItems()
-        let selectedTitles = ["Share Selection", "Print Selection…"].map { AppLocalization.string($0) }
-        XCTAssertEqual(selectionItems.map(\.label), selectedTitles)
-        XCTAssertEqual(selectionItems.compactMap { $0.menuFormRepresentation?.title }, selectedTitles)
-        for (original, updated) in zip(allItems, selectionItems) {
-            XCTAssertIdentical(original, updated)
+        for count in [1, 2, 5] {
+            let selectedBatch = ConnectionBatch(
+                connections: Array(repeating: connection, count: count),
+                isSelection: true
+            )
+            updateBatch(selectedBatch)
+            let selectionItems = batchItems()
+            let selectedTitles = ConnectionBatchAction.allCases.map { $0.localizedTitle(for: selectedBatch) }
+            XCTAssertEqual(selectionItems.map(\.label), selectedTitles)
+            XCTAssertEqual(selectionItems.compactMap(\.toolTip), selectedTitles)
+            XCTAssertEqual(selectionItems.compactMap { $0.menuFormRepresentation?.title }, selectedTitles)
+            for (original, updated) in zip(allItems, selectionItems) {
+                XCTAssertIdentical(original, updated)
+            }
         }
 
         updateBatch(nil)

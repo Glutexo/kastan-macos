@@ -420,7 +420,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             guard let connectionBatch else { return nil }
             let item = makeActionToolbarItem(
                 identifier: action.toolbarIdentifier,
-                title: AppLocalization.string(action.titleKey(for: connectionBatch)),
+                title: action.localizedTitle(for: connectionBatch),
                 systemImage: action.systemImage,
                 action: selector
             )
@@ -437,7 +437,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
                 if let connectionBatch {
                     if let index {
                         let item = toolbar.items[index]
-                        let title = AppLocalization.string(action.titleKey(for: connectionBatch))
+                        let title = action.localizedTitle(for: connectionBatch)
                         item.label = title
                         item.paletteLabel = title
                         item.toolTip = title

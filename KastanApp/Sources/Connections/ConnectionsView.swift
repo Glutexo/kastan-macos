@@ -7,13 +7,17 @@ enum ConnectionBatchAction: CaseIterable, Hashable {
     case share
     case print
 
-    func titleKey(for batch: ConnectionBatch) -> String {
-        switch self {
+    func localizedTitle(for batch: ConnectionBatch, bundle: Bundle = .main) -> String {
+        let keys = switch self {
         case .share:
-            batch.isSelection ? "Share Selection" : "Share All"
+            (all: "Share All", selection: "Share %lld selected connections")
         case .print:
-            batch.isSelection ? "Print Selection…" : "Print All…"
+            (all: "Print All…", selection: "Print %lld selected connections…")
         }
+        if batch.isSelection {
+            return AppLocalization.plural(keys.selection, count: batch.connections.count, bundle: bundle)
+        }
+        return bundle.localizedString(forKey: keys.all, value: keys.all, table: nil)
     }
 
     var systemImage: String {
@@ -332,20 +336,12 @@ struct ConnectionsView: View {
                 loadEarlier: { await model.loadMore(.earlier) },
                 loadLater: { await model.loadMore(.later) }
             ) {
-                VStack(alignment: .leading, spacing: 10) {
-                    if model.isSearchFormCollapsed {
-                        connectionSearchSummaryBar
-                            .transition(.opacity)
-                    } else {
-                        searchPanel(layout: layout)
-                            .transition(.opacity)
-                    }
-
-                    if !model.selectedConnectionIDs.isEmpty {
-                        Text(AppLocalization.plural("%lld selected connections", count: model.selectedConnectionIDs.count))
-                            .foregroundStyle(.secondary)
-                            .controlSize(.small)
-                    }
+                if model.isSearchFormCollapsed {
+                    connectionSearchSummaryBar
+                        .transition(.opacity)
+                } else {
+                    searchPanel(layout: layout)
+                        .transition(.opacity)
                 }
             } resultsContent: {
                 resultsPanel

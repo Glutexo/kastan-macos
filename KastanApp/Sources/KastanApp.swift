@@ -1169,7 +1169,7 @@ struct ConnectionBatchCommands: Commands {
                     Button {
                         action.perform(batch)
                     } label: {
-                        Label(LocalizedStringKey(action.titleKey(for: batch)), systemImage: action.systemImage)
+                        Label(action.localizedTitle(for: batch), systemImage: action.systemImage)
                     }
                 }
             }

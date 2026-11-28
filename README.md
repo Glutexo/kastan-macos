@@ -5,7 +5,7 @@
 A native SwiftUI app for connections, station boards, and urban public-transport timetables on macOS 13 or newer.
 It uses the [Kaštan Swift library](https://github.com/Glutexo/kastan) to search IDOS.
 
-![Kaštan for macOS with two Ostrava–Opava train connections selected and the Share Selection and Print Selection buttons visible](docs/images/kastan-macos-connections.png)
+![Kaštan for macOS in Czech with two Ostrava–Opava connections selected and the bulk share and print buttons visible](docs/images/kastan-macos-connections.png)
 
 See [downloads](https://github.com/Glutexo/kastan-macos/releases) for app releases. Downloads up to and including
 0.10.0 are available in the [original repository](https://github.com/Glutexo/kastan/releases/tag/v0.10.0).

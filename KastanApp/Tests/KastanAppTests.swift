@@ -6577,6 +6577,60 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(selection, .departures)
     }
 
+    func testNativeToolbarKeepsBatchActionsAndTheirOverflowLabelsInSync() throws {
+        let selection = Binding.constant(AppSection.connections)
+        let coordinator = MainWindowToolbarInstaller.Coordinator(
+            selection: selection,
+            openFavoriteTimetables: {},
+            openAppInformation: {}
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 630, height: 540),
+            styleMask: [.titled, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        coordinator.install(on: window)
+        defer { coordinator.uninstall() }
+
+        func updateBatch(_ batch: ConnectionBatch?) {
+            coordinator.update(
+                selection: selection,
+                sections: AppSection.allCases,
+                dataSourceSelection: .constant(.idos),
+                dataSourceDescriptors: [.idos],
+                connectionBatch: batch,
+                openFavoriteTimetables: {},
+                openAppInformation: {}
+            )
+        }
+
+        let expectedIDs: [NSToolbarItem.Identifier] = [.shareConnectionBatch, .printConnectionBatch]
+        func batchItems() -> [NSToolbarItem] {
+            coordinator.toolbar.items.filter { expectedIDs.contains($0.itemIdentifier) }
+        }
+
+        XCTAssertTrue(batchItems().isEmpty)
+        let connection = connection(id: "toolbar-batch")
+        updateBatch(ConnectionBatch(connections: [connection], isSelection: false))
+        let allItems = batchItems()
+        XCTAssertEqual(allItems.map(\.itemIdentifier), expectedIDs)
+        XCTAssertEqual(allItems.map(\.label), ["Share All", "Print All…"].map { AppLocalization.string($0) })
+        XCTAssertTrue(allItems.allSatisfy { $0.visibilityPriority == .high && $0.action != nil })
+
+        updateBatch(ConnectionBatch(connections: [connection], isSelection: true))
+        let selectionItems = batchItems()
+        let selectedTitles = ["Share Selection", "Print Selection…"].map { AppLocalization.string($0) }
+        XCTAssertEqual(selectionItems.map(\.label), selectedTitles)
+        XCTAssertEqual(selectionItems.compactMap { $0.menuFormRepresentation?.title }, selectedTitles)
+        for (original, updated) in zip(allItems, selectionItems) {
+            XCTAssertIdentical(original, updated)
+        }
+
+        updateBatch(nil)
+        XCTAssertTrue(batchItems().isEmpty)
+    }
+
     func testMainWindowToolbarPreservesSavedWindowFrame() {
         var selection = AppSection.connections
         let coordinator = MainWindowToolbarInstaller.Coordinator(

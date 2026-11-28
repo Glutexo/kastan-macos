@@ -2,6 +2,44 @@ import AppKit
 import Kastan
 import SwiftUI
 
+/// Shares the names and behavior of the connection commands across the toolbar and File menu.
+enum ConnectionBatchAction: CaseIterable, Hashable {
+    case share
+    case print
+
+    func titleKey(for batch: ConnectionBatch) -> String {
+        switch self {
+        case .share:
+            batch.isSelection ? "Share Selection" : "Share All"
+        case .print:
+            batch.isSelection ? "Print Selection…" : "Print All…"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .share: "square.and.arrow.up"
+        case .print: "printer"
+        }
+    }
+
+    @MainActor
+    func perform(_ batch: ConnectionBatch) {
+        switch self {
+        case .share:
+            let text = CLIPlainTextPresentation().connections(batch, includesLinks: true)
+            ResultSharingServicePickerPresenter.shared.show(text: text)
+        case .print:
+            // Launch the modal print operation after the File or overflow menu has dismissed.
+            DispatchQueue.main.async {
+                guard NSPrintOperation.current == nil else { return }
+                let text = CLIPlainTextPresentation().connections(batch, includesLinks: false)
+                _ = ResultPrinting.operation(for: text, title: AppLocalization.string(batch.titleKey)).run()
+            }
+        }
+    }
+}
+
 /// Chooses one mutually exclusive result body while a fresh search replaces the previous query.
 enum ConnectionResultsPresentation: Equatable {
     case searching
@@ -303,8 +341,10 @@ struct ConnectionsView: View {
                             .transition(.opacity)
                     }
 
-                    if let batch = model.connectionBatch {
-                        batchActions(for: batch)
+                    if !model.selectedConnectionIDs.isEmpty {
+                        Text(AppLocalization.plural("%lld selected connections", count: model.selectedConnectionIDs.count))
+                            .foregroundStyle(.secondary)
+                            .controlSize(.small)
                     }
                 }
             } resultsContent: {
@@ -355,37 +395,6 @@ struct ConnectionsView: View {
         .navigationTitle(
             MainWindowTitlePresentation.connections(from: model.from, to: model.to)
         )
-    }
-
-    /// Keeps the batch actions in reach while the passenger scrolls through the result list.
-    private func batchActions(for batch: ConnectionBatch) -> some View {
-        HStack(spacing: 8) {
-            if batch.isSelection {
-                Text(AppLocalization.plural("%lld selected connections", count: batch.connections.count))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button {
-                let text = CLIPlainTextPresentation().connections(batch, includesLinks: true)
-                ResultSharingServicePickerPresenter.shared.show(text: text)
-            } label: {
-                Label(
-                    LocalizedStringKey(batch.isSelection ? "Share Selection" : "Share All"),
-                    systemImage: "square.and.arrow.up"
-                )
-            }
-            Button {
-                guard NSPrintOperation.current == nil else { return }
-                let text = CLIPlainTextPresentation().connections(batch, includesLinks: false)
-                _ = ResultPrinting.operation(for: text, title: AppLocalization.string(batch.titleKey)).run()
-            } label: {
-                Label(
-                    LocalizedStringKey(batch.isSelection ? "Print Selection…" : "Print All…"),
-                    systemImage: "printer"
-                )
-            }
-        }
-        .controlSize(.small)
     }
 
     private var resultsPanel: some View {

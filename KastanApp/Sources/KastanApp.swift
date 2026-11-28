@@ -1141,10 +1141,39 @@ struct ResultDetailCommandContextKey: FocusedValueKey {
     typealias Value = ResultDetailCommandContext
 }
 
+struct ConnectionBatchCommandContextKey: FocusedValueKey {
+    typealias Value = ConnectionBatch
+}
+
 extension FocusedValues {
     var resultDetailCommandContext: ResultDetailCommandContext? {
         get { self[ResultDetailCommandContextKey.self] }
         set { self[ResultDetailCommandContextKey.self] = newValue }
+    }
+
+    var connectionBatch: ConnectionBatch? {
+        get { self[ConnectionBatchCommandContextKey.self] }
+        set { self[ConnectionBatchCommandContextKey.self] = newValue }
+    }
+}
+
+/// Adds the toolbar's sharing and printing commands to File for the focused connection results.
+struct ConnectionBatchCommands: Commands {
+    @FocusedValue(\.connectionBatch) private var batch
+
+    var body: some Commands {
+        CommandGroup(after: .importExport) {
+            if let batch {
+                Divider()
+                ForEach(ConnectionBatchAction.allCases, id: \.self) { action in
+                    Button {
+                        action.perform(batch)
+                    } label: {
+                        Label(LocalizedStringKey(action.titleKey(for: batch)), systemImage: action.systemImage)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1367,6 +1396,7 @@ struct KastanApp: App {
             )
             ConnectionSearchCommands()
             ResultDetailCommands()
+            ConnectionBatchCommands()
             AppSectionCommands(
                 showsConnectionBadges: $showsConnectionBadges,
                 showsItemDetails: $showsItemDetails,

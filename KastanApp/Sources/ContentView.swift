@@ -567,6 +567,7 @@ struct ContentView: View {
     var body: some View {
         ProviderSearchWorkspaceView(
             workspace: dataSourceSelection.workspace,
+            connectionsModel: dataSourceSelection.workspace.connectionsModel,
             dataSourceDescriptors: dataSourceSelection.descriptors,
             selectedDataSourceID: Binding(
                 get: { dataSourceSelection.selectedDataSourceID },
@@ -619,6 +620,7 @@ struct ContentView: View {
 private struct ProviderSearchWorkspaceView: View {
     @Environment(\.openWindow) private var openWindow
     @ObservedObject var workspace: AppDataSourceWorkspace
+    @ObservedObject var connectionsModel: ConnectionsViewModel
     let dataSourceDescriptors: [TransitDataSourceDescriptor]
     @Binding var selectedDataSourceID: TransitDataSourceID
     let allowsDataSourceSelection: Bool
@@ -630,6 +632,7 @@ private struct ProviderSearchWorkspaceView: View {
     private var client: any TransitDataSource { workspace.client }
 
     var body: some View {
+        let batch = workspace.selection == .connections ? connectionsModel.connectionBatch : nil
         selectedContent
             .background {
                 MainWindowToolbarInstaller(
@@ -638,6 +641,7 @@ private struct ProviderSearchWorkspaceView: View {
                     dataSourceSelection: $selectedDataSourceID,
                     dataSourceDescriptors: dataSourceDescriptors,
                     allowsDataSourceSelection: allowsDataSourceSelection,
+                    connectionBatch: batch,
                     openFavoriteTimetables: { openWindow(id: AppWindow.favoriteTimetables) },
                     openAppInformation: { openWindow(id: AppWindow.information) }
                 )
@@ -645,6 +649,7 @@ private struct ProviderSearchWorkspaceView: View {
             .focusedSceneValue(\.appSectionSelection, $workspace.selection)
             .focusedSceneValue(\.availableAppSections, Set(workspace.availableSections))
             .focusedSceneValue(\.activeDataSourceDescriptor, client.descriptor)
+            .focusedSceneValue(\.connectionBatch, batch)
     }
 
     @ViewBuilder
@@ -659,7 +664,7 @@ private struct ProviderSearchWorkspaceView: View {
             switch workspace.selection {
             case .connections:
                 ConnectionsView(
-                    model: workspace.connectionsModel,
+                    model: connectionsModel,
                     client: client,
                     showsConnectionBadges: showsConnectionBadges,
                     showsItemDetails: showsItemDetails,

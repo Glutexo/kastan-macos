@@ -289,9 +289,10 @@ one ordinary provider is registered.
   links.
 - Use Select Connection or Deselect Connection in a result's action menu, or hold Option to reveal the checkbox
   next to each card's ellipsis menu. The checkboxes stay visible while any connection is selected or Option is
-  held. Share All and Print All use every loaded result, including earlier or later results added to the list.
-  With any connection checked, those buttons become Share Selection and Print Selection and show the selection
-  count alongside them. Sharing opens the macOS picker with one text itinerary and each available permanent link.
+  held. When Connections has results, the main window toolbar and the File menu offer Share All and Print All.
+  They use every loaded result, including earlier or later results added to the list. Checking a connection shows
+  the selection count above the list and changes both places to Share Selection and Print Selection. Sharing opens
+  the macOS picker with one text itinerary and each available permanent link.
   Printing opens the macOS print dialog, where the itinerary can also be saved as a PDF. Both actions follow the
   displayed order. Loading earlier or later results keeps the selection, and starting a new search clears it.
 - Connection cards and complete connections offer Send by Email when IDOS supplies the data needed for that result.

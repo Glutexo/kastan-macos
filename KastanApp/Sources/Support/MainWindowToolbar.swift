@@ -11,6 +11,17 @@ extension NSToolbarItem.Identifier {
     static let searchMode = NSToolbarItem.Identifier("cz.glutexo.kastan.search-mode")
     static let favoriteTimetables = NSToolbarItem.Identifier("cz.glutexo.kastan.favorite-timetables")
     static let appInformation = NSToolbarItem.Identifier("cz.glutexo.kastan.app-information")
+    static let shareConnectionBatch = NSToolbarItem.Identifier("cz.glutexo.kastan.share-connection-batch")
+    static let printConnectionBatch = NSToolbarItem.Identifier("cz.glutexo.kastan.print-connection-batch")
+}
+
+private extension ConnectionBatchAction {
+    var toolbarIdentifier: NSToolbarItem.Identifier {
+        switch self {
+        case .share: .shareConnectionBatch
+        case .print: .printConnectionBatch
+        }
+    }
 }
 
 /// Gives every main window and native tab a compact title that identifies its active search.
@@ -87,6 +98,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
     let sections: [AppSection]
     let dataSourceDescriptors: [TransitDataSourceDescriptor]
     let allowsDataSourceSelection: Bool
+    let connectionBatch: ConnectionBatch?
     let openFavoriteTimetables: @MainActor () -> Void
     let openAppInformation: @MainActor () -> Void
 
@@ -96,6 +108,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
         dataSourceSelection: Binding<TransitDataSourceID> = .constant(.idos),
         dataSourceDescriptors: [TransitDataSourceDescriptor] = [.idos],
         allowsDataSourceSelection: Bool = true,
+        connectionBatch: ConnectionBatch? = nil,
         openFavoriteTimetables: @escaping @MainActor () -> Void,
         openAppInformation: @escaping @MainActor () -> Void
     ) {
@@ -104,6 +117,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
         self.sections = sections
         self.dataSourceDescriptors = dataSourceDescriptors
         self.allowsDataSourceSelection = allowsDataSourceSelection
+        self.connectionBatch = connectionBatch
         self.openFavoriteTimetables = openFavoriteTimetables
         self.openAppInformation = openAppInformation
     }
@@ -115,6 +129,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             dataSourceSelection: $dataSourceSelection,
             dataSourceDescriptors: dataSourceDescriptors,
             allowsDataSourceSelection: allowsDataSourceSelection,
+            connectionBatch: connectionBatch,
             openFavoriteTimetables: openFavoriteTimetables,
             openAppInformation: openAppInformation
         )
@@ -134,6 +149,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             dataSourceSelection: $dataSourceSelection,
             dataSourceDescriptors: dataSourceDescriptors,
             allowsDataSourceSelection: allowsDataSourceSelection,
+            connectionBatch: connectionBatch,
             openFavoriteTimetables: openFavoriteTimetables,
             openAppInformation: openAppInformation
         )
@@ -162,6 +178,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
         private var dataSourceSelection: Binding<TransitDataSourceID>
         private var dataSourceDescriptors: [TransitDataSourceDescriptor]
         private var allowsDataSourceSelection: Bool
+        private var connectionBatch: ConnectionBatch?
         private var openFavoriteTimetables: () -> Void
         private var openAppInformation: () -> Void
         private weak var window: NSWindow?
@@ -184,6 +201,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             dataSourceSelection: Binding<TransitDataSourceID> = .constant(.idos),
             dataSourceDescriptors: [TransitDataSourceDescriptor] = [.idos],
             allowsDataSourceSelection: Bool = true,
+            connectionBatch: ConnectionBatch? = nil,
             openFavoriteTimetables: @escaping () -> Void,
             openAppInformation: @escaping () -> Void
         ) {
@@ -192,6 +210,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             self.dataSourceSelection = dataSourceSelection
             self.dataSourceDescriptors = dataSourceDescriptors
             self.allowsDataSourceSelection = allowsDataSourceSelection
+            self.connectionBatch = connectionBatch
             self.openFavoriteTimetables = openFavoriteTimetables
             self.openAppInformation = openAppInformation
             super.init()
@@ -203,6 +222,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             dataSourceSelection: Binding<TransitDataSourceID>,
             dataSourceDescriptors: [TransitDataSourceDescriptor],
             allowsDataSourceSelection: Bool = true,
+            connectionBatch: ConnectionBatch? = nil,
             openFavoriteTimetables: @escaping () -> Void,
             openAppInformation: @escaping () -> Void
         ) {
@@ -214,6 +234,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             self.dataSourceSelection = dataSourceSelection
             self.dataSourceDescriptors = dataSourceDescriptors
             self.allowsDataSourceSelection = allowsDataSourceSelection
+            self.connectionBatch = connectionBatch
             self.openFavoriteTimetables = openFavoriteTimetables
             self.openAppInformation = openAppInformation
             if sectionsChanged {
@@ -226,6 +247,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             updateModeMenuState()
             updateDataSourceControlState()
             updateDataSourceMenuState()
+            updateConnectionBatchItems()
         }
 
         func install(on window: NSWindow?) {
@@ -261,7 +283,11 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             if showsDataSourceSelector {
                 identifiers.append(.dataSource)
             }
-            identifiers += [.flexibleSpace, .searchMode, .flexibleSpace, .favoriteTimetables, .appInformation]
+            identifiers += [.flexibleSpace, .searchMode, .flexibleSpace]
+            if connectionBatch != nil {
+                identifiers += ConnectionBatchAction.allCases.map(\.toolbarIdentifier)
+            }
+            identifiers += [.favoriteTimetables, .appInformation]
             return identifiers
         }
 
@@ -270,6 +296,7 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             if showsDataSourceSelector {
                 identifiers.append(.dataSource)
             }
+            identifiers += ConnectionBatchAction.allCases.map(\.toolbarIdentifier)
             identifiers += [.favoriteTimetables, .appInformation]
             return identifiers
         }
@@ -284,6 +311,10 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
                 showsDataSourceSelector ? makeDataSourceToolbarItem(retainView: flag) : nil
             case .searchMode:
                 makeModeToolbarItem(retainView: flag)
+            case .shareConnectionBatch:
+                makeConnectionBatchToolbarItem(.share, selector: #selector(shareConnectionBatch(_:)))
+            case .printConnectionBatch:
+                makeConnectionBatchToolbarItem(.print, selector: #selector(printConnectionBatch(_:)))
             case .favoriteTimetables:
                 makeActionToolbarItem(
                     identifier: itemIdentifier,
@@ -380,6 +411,45 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
             menuItem.image = image
             item.menuFormRepresentation = menuItem
             return item
+        }
+
+        private func makeConnectionBatchToolbarItem(
+            _ action: ConnectionBatchAction,
+            selector: Selector
+        ) -> NSToolbarItem? {
+            guard let connectionBatch else { return nil }
+            let item = makeActionToolbarItem(
+                identifier: action.toolbarIdentifier,
+                title: AppLocalization.string(action.titleKey(for: connectionBatch)),
+                systemImage: action.systemImage,
+                action: selector
+            )
+            item.visibilityPriority = .high
+            return item
+        }
+
+        /// Keeps the native items stable when the scope changes and removes them when results are unavailable.
+        private func updateConnectionBatchItems() {
+            guard window != nil else { return }
+
+            for action in ConnectionBatchAction.allCases {
+                let index = toolbar.items.firstIndex { $0.itemIdentifier == action.toolbarIdentifier }
+                if let connectionBatch {
+                    if let index {
+                        let item = toolbar.items[index]
+                        let title = AppLocalization.string(action.titleKey(for: connectionBatch))
+                        item.label = title
+                        item.paletteLabel = title
+                        item.toolTip = title
+                        item.image?.accessibilityDescription = title
+                        item.menuFormRepresentation?.title = title
+                    } else if let index = toolbar.items.firstIndex(where: { $0.itemIdentifier == .favoriteTimetables }) {
+                        toolbar.insertItem(withItemIdentifier: action.toolbarIdentifier, at: index)
+                    }
+                } else if let index {
+                    toolbar.removeItem(at: index)
+                }
+            }
         }
 
         private func makeModeMenuRepresentation(title: String) -> NSMenuItem {
@@ -528,6 +598,14 @@ struct MainWindowToolbarInstaller: NSViewRepresentable {
 
         @objc private func showAppInformation(_ sender: Any?) {
             openAppInformation()
+        }
+
+        @objc private func shareConnectionBatch(_ sender: Any?) {
+            if let connectionBatch { ConnectionBatchAction.share.perform(connectionBatch) }
+        }
+
+        @objc private func printConnectionBatch(_ sender: Any?) {
+            if let connectionBatch { ConnectionBatchAction.print.perform(connectionBatch) }
         }
     }
 }

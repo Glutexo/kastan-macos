@@ -303,8 +303,8 @@ struct ConnectionsView: View {
                             .transition(.opacity)
                     }
 
-                    if !model.selectedConnectionIDs.isEmpty {
-                        selectionActions
+                    if let batch = model.connectionBatch {
+                        batchActions(for: batch)
                     }
                 }
             } resultsContent: {
@@ -358,23 +358,31 @@ struct ConnectionsView: View {
     }
 
     /// Keeps the batch actions in reach while the passenger scrolls through the result list.
-    private var selectionActions: some View {
+    private func batchActions(for batch: ConnectionBatch) -> some View {
         HStack(spacing: 8) {
-            Text(AppLocalization.plural("%lld selected connections", count: model.selectedConnectionIDs.count))
-                .foregroundStyle(.secondary)
+            if batch.isSelection {
+                Text(AppLocalization.plural("%lld selected connections", count: batch.connections.count))
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             Button {
-                let text = CLIPlainTextPresentation().connections(model.selectedConnections, includesLinks: true)
+                let text = CLIPlainTextPresentation().connections(batch, includesLinks: true)
                 ResultSharingServicePickerPresenter.shared.show(text: text)
             } label: {
-                Label("Share Selection", systemImage: "square.and.arrow.up")
+                Label(
+                    LocalizedStringKey(batch.isSelection ? "Share Selection" : "Share All"),
+                    systemImage: "square.and.arrow.up"
+                )
             }
             Button {
-                let text = CLIPlainTextPresentation().connections(model.selectedConnections, includesLinks: false)
-                guard !text.isEmpty, NSPrintOperation.current == nil else { return }
-                _ = ResultPrinting.operation(for: text, title: AppLocalization.string("Selected Connections")).run()
+                guard NSPrintOperation.current == nil else { return }
+                let text = CLIPlainTextPresentation().connections(batch, includesLinks: false)
+                _ = ResultPrinting.operation(for: text, title: AppLocalization.string(batch.titleKey)).run()
             } label: {
-                Label("Print Selection…", systemImage: "printer")
+                Label(
+                    LocalizedStringKey(batch.isSelection ? "Print Selection…" : "Print All…"),
+                    systemImage: "printer"
+                )
             }
         }
         .controlSize(.small)

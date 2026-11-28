@@ -27,11 +27,11 @@ struct CLIPlainTextPresentation {
         """
     }
 
-    /// Formats the checked schedules as one document and includes permanent links in the shareable version.
-    func connections(_ connections: [TransitConnection], includesLinks: Bool) -> String {
-        guard !connections.isEmpty else { return "" }
+    /// Formats the result batch as one document and includes permanent links in the shareable version.
+    func connections(_ batch: ConnectionBatch, includesLinks: Bool) -> String {
+        guard !batch.connections.isEmpty else { return "" }
 
-        let schedules = connections.enumerated().map { index, connection in
+        let schedules = batch.connections.enumerated().map { index, connection in
             let departureDate = connection.departureDate.map { "\($0.day).\($0.month).\($0.year) · " } ?? ""
             var summary = "\(index + 1). \(departureDate)\(connectionSchedule(connection))"
             if includesLinks, let url = connection.shareURL.flatMap(AppLanguagePreference.localizedResultURL) {
@@ -39,7 +39,7 @@ struct CLIPlainTextPresentation {
             }
             return summary
         }
-        return ([text("Selected Connections")] + schedules).joined(separator: "\n\n")
+        return ([text(batch.titleKey)] + schedules).joined(separator: "\n\n")
     }
 
     private func connectionSchedule(_ connection: TransitConnection) -> String {

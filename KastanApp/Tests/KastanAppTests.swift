@@ -3079,7 +3079,8 @@ final class KastanAppTests: XCTestCase {
             legs: []
         )
 
-        let printed = presentation.connections([first, second], includesLinks: false)
+        let selected = ConnectionBatch(connections: [first, second], isSelection: true)
+        let printed = presentation.connections(selected, includesLinks: false)
         XCTAssertEqual(printed, """
             Vybraná spojení
 
@@ -3088,10 +3089,20 @@ final class KastanAppTests: XCTestCase {
 
             2. 28.11.2026 · 🕒 00:12 Praha → 01:45 Pardubice (1 h 33 min)
             """)
-        let shared = presentation.connections([first, second], includesLinks: true)
+        let shared = presentation.connections(selected, includesLinks: true)
         XCTAssertTrue(shared.contains("\n   https://example.com/first\n\n2. "))
         XCTAssertEqual(shared.replacingOccurrences(of: "\n   https://example.com/first", with: ""), printed)
-        XCTAssertEqual(presentation.connections([], includesLinks: true), "")
+        let all = ConnectionBatch(connections: [first, second], isSelection: false)
+        XCTAssertEqual(
+            presentation.connections(all, includesLinks: true),
+            shared.replacingOccurrences(of: "Vybraná spojení", with: "Všechna spojení")
+        )
+        XCTAssertEqual(
+            presentation.connections(ConnectionBatch(connections: [], isSelection: false), includesLinks: true),
+            ""
+        )
+        XCTAssertEqual(czech.localizedString(forKey: "Share All", value: nil, table: nil), "Sdílet vše")
+        XCTAssertEqual(czech.localizedString(forKey: "Print All…", value: nil, table: nil), "Vytisknout vše…")
         XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 1, bundle: czech), "1 vybrané spojení")
         XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 3, bundle: czech), "3 vybraná spojení")
         XCTAssertEqual(AppLocalization.plural("%lld selected connections", count: 5, bundle: czech), "5 vybraných spojení")
@@ -9381,7 +9392,7 @@ final class KastanAppTests: XCTestCase {
         XCTAssertEqual(directions, [.earlier, .later])
     }
 
-    func testConnectionSelectionFollowsResultOrderAndClearsOnNewSearch() async {
+    func testConnectionBatchUsesTheSelectionOrAllLoadedResultsInOrder() async throws {
         let client = MockIDOSClient()
         await client.configureConnectionPages(
             earlier: [connection(id: "connection-0", timetableIdentifier: "vlaky")],
@@ -9391,21 +9402,33 @@ final class KastanAppTests: XCTestCase {
         model.from = "Praha"
         model.to = "Brno"
 
+        XCTAssertNil(model.connectionBatch)
         await model.search()
-        let firstResultID = model.connections[0].appIdentity
+        let firstResultID = try XCTUnwrap(model.connections.first?.appIdentity)
+        XCTAssertEqual(model.connectionBatch?.isSelection, false)
+        XCTAssertEqual(model.connectionBatch?.connections.map(\.id), ["connection-1"])
+
         model.setConnectionSelected(true, id: firstResultID)
         await model.loadMore(.earlier)
         await model.loadMore(.later)
-        XCTAssertEqual(model.selectedConnections.map(\.id), ["connection-1"])
+        XCTAssertEqual(model.connectionBatch?.isSelection, true)
+        XCTAssertEqual(model.connectionBatch?.connections.map(\.id), ["connection-1"])
 
-        model.setConnectionSelected(true, id: model.connections[0].appIdentity)
-        XCTAssertEqual(model.selectedConnections.map(\.id), ["connection-0", "connection-1"])
+        let earlierResultID = try XCTUnwrap(model.connections.first?.appIdentity)
+        model.setConnectionSelected(true, id: earlierResultID)
+        XCTAssertEqual(model.connectionBatch?.connections.map(\.id), ["connection-0", "connection-1"])
         model.setConnectionSelected(false, id: firstResultID)
-        XCTAssertEqual(model.selectedConnections.map(\.id), ["connection-0"])
+        XCTAssertEqual(model.connectionBatch?.connections.map(\.id), ["connection-0"])
 
+        model.setConnectionSelected(false, id: earlierResultID)
+        XCTAssertEqual(model.connectionBatch?.isSelection, false)
+        XCTAssertEqual(model.connectionBatch?.connections.map(\.id), ["connection-0", "connection-1", "connection-2"])
+
+        model.setConnectionSelected(true, id: earlierResultID)
         await model.search()
         XCTAssertTrue(model.selectedConnectionIDs.isEmpty)
-        XCTAssertEqual(model.connections.map(\.id), ["connection-1"])
+        XCTAssertEqual(model.connectionBatch?.isSelection, false)
+        XCTAssertEqual(model.connectionBatch?.connections.map(\.id), ["connection-1"])
     }
 
     func testConnectionRefreshRecoversAnExpiredPagingSession() async {

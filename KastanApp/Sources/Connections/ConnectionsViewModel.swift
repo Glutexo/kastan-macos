@@ -1,6 +1,16 @@
 import Foundation
 import Kastan
 
+/// Captures the ordered connections and scope of one sharing or printing action.
+struct ConnectionBatch {
+    let connections: [TransitConnection]
+    let isSelection: Bool
+
+    var titleKey: String {
+        isSelection ? "Selected Connections" : "All Connections"
+    }
+}
+
 /// Preserves one complete connection query while opening it in another main window or tab.
 struct ConnectionSearchSelection: Codable, Hashable {
     let timetable: TransitTimetable
@@ -1930,9 +1940,14 @@ final class ConnectionsViewModel: ObservableObject {
         }
     }
 
-    /// Exports the checked connections in their current result order, including after paging.
-    var selectedConnections: [TransitConnection] {
-        connections.filter { selectedConnectionIDs.contains($0.appIdentity) }
+    /// Uses the checked connections when present and all loaded results otherwise.
+    var connectionBatch: ConnectionBatch? {
+        guard !isSearching, !connections.isEmpty else { return nil }
+        let selected = connections.filter { selectedConnectionIDs.contains($0.appIdentity) }
+        return ConnectionBatch(
+            connections: selected.isEmpty ? connections : selected,
+            isSelection: !selected.isEmpty
+        )
     }
 
     func setConnectionSelected(_ isSelected: Bool, id: AppTransitValueIdentity) {

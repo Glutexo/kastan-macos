@@ -74,6 +74,16 @@ enum ConnectionResultsPresentation: Equatable {
             connection.legs.last?.toStation != connection.arrivalStation
     }
 
+    /// Counts changes between services, including routes with a walk before, after, or between rides.
+    static func transferSummary(for connection: TransitConnection, bundle: Bundle = .main) -> String? {
+        guard !connection.legs.isEmpty else { return nil }
+        let rides = connection.legs.count { $0.transportMode != .walk }
+        guard rides > 1 else {
+            return bundle.localizedString(forKey: "No transfers", value: "no transfers", table: nil)
+        }
+        return AppLocalization.plural("%lld transfers", count: rides - 1, bundle: bundle)
+    }
+
     /// Mirrors the CLI by marking every displayed connection tied for the shortest parsed duration.
     static func shortestConnectionIDs(in connections: [TransitConnection]) -> Set<String> {
         let comparableConnections = connections.compactMap { connection -> (id: String, minutes: Int)? in
@@ -1875,11 +1885,17 @@ struct ConnectionCard: View {
                                     }
                                 }
                             }
-                        Text(connection.duration)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                            .layoutPriority(1)
+                        let details = [connection.duration, ConnectionResultsPresentation.transferSummary(for: connection)]
+                            .compactMap { $0 }
+                            .filter { !$0.isEmpty }
+                            .joined(separator: " · ")
+                        if !details.isEmpty {
+                            Text(details)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .layoutPriority(1)
+                        }
                         ForEach(
                             ConnectionBadgePresentation.visibleKinds(
                                 showsBadges: showsConnectionBadges,

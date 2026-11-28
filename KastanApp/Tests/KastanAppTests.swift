@@ -5092,6 +5092,38 @@ final class KastanAppTests: XCTestCase {
         )
     }
 
+    func testConnectionTransferSummaryLocalizesServiceChangesWithoutCountingWalks() throws {
+        let czech = try XCTUnwrap(localizationBundle(languageCode: "cs"))
+        let english = try XCTUnwrap(localizationBundle(languageCode: "en"))
+        var result = connection(id: "transfer-count")
+        let ride = TransitConnectionLeg(
+            name: "R 879",
+            transportMode: .train,
+            departureTime: result.departureTime,
+            fromStation: result.departureStation,
+            arrivalTime: result.arrivalTime,
+            toStation: result.arrivalStation
+        )
+        var walk = ride
+        walk.transportMode = .walk
+
+        XCTAssertNil(ConnectionResultsPresentation.transferSummary(for: result, bundle: czech))
+        result.legs = [walk]
+        XCTAssertEqual(ConnectionResultsPresentation.transferSummary(for: result, bundle: czech), "bez přestupu")
+
+        for (count, czechLabel, englishLabel) in [
+            (0, "bez přestupu", "no transfers"),
+            (1, "1 přestup", "1 transfer"),
+            (2, "2 přestupy", "2 transfers"),
+            (4, "4 přestupy", "4 transfers"),
+            (5, "5 přestupů", "5 transfers"),
+        ] {
+            result.legs = [walk] + (0...count).flatMap { _ in [ride, walk] }
+            XCTAssertEqual(ConnectionResultsPresentation.transferSummary(for: result, bundle: czech), czechLabel)
+            XCTAssertEqual(ConnectionResultsPresentation.transferSummary(for: result, bundle: english), englishLabel)
+        }
+    }
+
     func testConnectionBadgeTitlesUseConsistentSemanticEmoji() throws {
         let english = try XCTUnwrap(localizationBundle(languageCode: "en"))
         let czech = try XCTUnwrap(localizationBundle(languageCode: "cs"))

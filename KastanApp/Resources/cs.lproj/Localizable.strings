@@ -295,6 +295,7 @@
 "Trains, buses, and all" = "Vlaky, autobusy a vše";
 "Trains + Buses" = "Vlaky + autobusy";
 "Trains + Buses + Urban Public Transport" = "Vlaky + autobusy + MHD";
+"No transfers" = "bez přestupu";
 "Transfers" = "Přestupy";
 "Try a different time, route, or timetable." = "Zkuste jiný čas, trasu nebo jízdní řád.";
 "Try Again" = "Zkusit znovu";

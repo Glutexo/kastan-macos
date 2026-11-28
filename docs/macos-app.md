@@ -312,6 +312,8 @@ one ordinary provider is registered.
   IDOS generates and delivers the in-app attachments; delivery and attachment errors stay in the sheet for retry.
   If preparing the direct Mail draft fails, Kaštan instead presents an alert named for that action with the complete
   error message.
+- Connection summaries show the journey duration and the number of transfers whenever an itinerary is available.
+  Walking legs are included in the route without adding transfers of their own.
 - The View menu's Show connection badges setting is off initially, applies to every app window, and persists across
   launches. When enabled, connection cards use semantic emoji to mark direct journeys and every connection tied for
   the shortest displayed duration; complete-connection windows follow the same setting. Badge text never wraps or

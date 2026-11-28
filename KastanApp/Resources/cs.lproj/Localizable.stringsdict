@@ -92,6 +92,24 @@
 			<string>Vytisknout %lld vybraných spojení…</string>
 		</dict>
 	</dict>
+	<key>%lld transfers</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@transfers@</string>
+		<key>transfers</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld přestup</string>
+			<key>few</key>
+			<string>%lld přestupy</string>
+			<key>other</key>
+			<string>%lld přestupů</string>
+		</dict>
+	</dict>
 	<key>Up to %lld transfers</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
